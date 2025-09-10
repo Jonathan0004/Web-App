@@ -3,63 +3,62 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Notes</title>
+<title>Weather</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,700,1,0&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F9F5EC;--radius:22px;}
+:root{--bg:#F9F5EC;--acc:#a67c52;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:#000;min-height:100vh;display:flex;flex-direction:column;}
-.material-symbols-rounded{font-variation-settings:'FILL' 1,'wght' 700,'GRAD' 0,'opsz' 24;}
-#notes{list-style:none;padding:80px 16px calc(120px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;}
-.note{background:#fff;border-radius:16px;padding:16px 44px;position:relative;}
-.note button{position:absolute;top:8px;width:28px;height:28px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;}
-.note .pin{left:8px;}
-.note .del{right:8px;}
-.nav{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 8px);display:flex;justify-content:center;gap:12px;padding:0 16px;}
-.nav .pill,.nav .search{height:44px;border-radius:var(--radius);display:flex;align-items:center;background:rgba(255,255,255,0.8);backdrop-filter:blur(10px);box-shadow:0 2px 4px rgba(0,0,0,0.1);}
-.nav .pill{width:44px;border:none;justify-content:center;}
-.nav .search{padding:0 12px;width:60vw;max-width:300px;}
-.nav .search span{margin-right:8px;}
-.nav .search input{border:none;outline:none;background:transparent;flex:1;font:inherit;}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,0.1);backdrop-filter:blur(6px);display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .2s ease;}
-.modal.show{opacity:1;pointer-events:auto;}
-.editor{background:var(--bg);margin:auto;width:90%;height:70%;border-radius:16px;display:flex;flex-direction:column;overflow:hidden;transform:translateY(20px);transition:transform .2s ease;}
-.modal.show .editor{transform:translateY(0);}
-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;}
-header button{width:32px;height:32px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;}
-textarea{flex:1;border:none;padding:12px;font:inherit;background:transparent;outline:none;resize:none;}
-@keyframes bounce{0%,100%{transform:scale(1);}50%{transform:scale(0.92);}70%{transform:scale(1.04);}}
-.bounce{animation:bounce .3s cubic-bezier(.34,1.56,.64,1);}
+html,body{height:100%;background:var(--bg);color:#222;font-family:'Inter',sans-serif;}
+#view{height:calc(var(--vh,1vh)*100);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 16px;}
+#city{font-size:18px;margin-bottom:4px;}
+#temp{font-size:72px;font-weight:500;}
+#desc{font-size:20px;margin-top:4px;color:var(--acc);}
+#bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 16px);width:90%;max-width:500px;display:flex;gap:12px;align-items:center;}
+.pill{height:48px;border-radius:999px;background:rgba(255,255,255,0.8);backdrop-filter:blur(20px);box-shadow:0 4px 16px rgba(0,0,0,0.1);display:flex;align-items:center;}
+.icon{width:48px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;border-radius:999px;cursor:pointer;}
+.material-symbols-rounded{font-variation-settings:'FILL' 0,'wght' 600,'GRAD' 0,'opsz' 24;font-size:24px;color:#555;}
+form.flex{flex:1;display:flex;padding:0 12px;}
+form.flex input{flex:1;border:none;background:transparent;font-size:16px;padding:0 8px;}
+form.flex input:focus{outline:none;}
+form.flex button{border:none;background:transparent;border-radius:999px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;margin-left:4px;}
+.hidden{display:none;}
+.fade{opacity:0;transform:translateY(8px);transition:opacity .3s ease,transform .3s ease;}
+.fade.show{opacity:1;transform:translateY(0);}
 </style>
 </head>
 <body>
-<ul id="notes"></ul>
-<nav class="nav">
-  <button class="pill" id="clear"><span class="material-symbols-rounded">delete</span></button>
-  <div class="search"><span class="material-symbols-rounded">search</span><input id="search" placeholder="Search"></div>
-  <button class="pill" id="add"><span class="material-symbols-rounded">add</span></button>
+<main id="view">
+  <div id="city" class="fade"></div>
+  <div id="temp" class="fade"></div>
+  <div id="desc" class="fade"></div>
+</main>
+<nav id="bar">
+  <button id="loc" class="pill icon"><span class="material-symbols-rounded">my_location</span></button>
+  <form id="search" class="pill flex">
+    <input id="q" placeholder="City" autocomplete="off">
+    <button type="button" id="clear" class="hidden"><span class="material-symbols-rounded">close</span></button>
+    <button type="submit"><span class="material-symbols-rounded">search</span></button>
+  </form>
+  <button id="reload" class="pill icon"><span class="material-symbols-rounded">refresh</span></button>
 </nav>
-<div class="modal" id="modal">
-  <div class="editor">
-    <header>
-      <button id="close"><span class="material-symbols-rounded">close</span></button>
-      <button id="save"><span class="material-symbols-rounded">check</span></button>
-    </header>
-    <textarea id="text"></textarea>
-  </div>
-</div>
 <script>
-function setVH(){document.documentElement.style.setProperty('--vh',`${window.innerHeight*0.01}px`);}setVH();window.addEventListener('resize',setVH);
-let notes=JSON.parse(localStorage.getItem('notes')||'[]').map(n=>typeof n==='string'?{text:n,pinned:false}:n);const list=document.getElementById('notes');const modal=document.getElementById('modal');const text=document.getElementById('text');const search=document.getElementById('search');let editIndex=null;
-function bounce(el){el.classList.add('bounce');el.addEventListener('animationend',()=>el.classList.remove('bounce'),{once:true});}
-function render(){notes.sort((a,b)=>b.pinned-a.pinned);list.innerHTML='';notes.forEach((n,i)=>{const li=document.createElement('li');li.className='note';li.dataset.i=i;const t=document.createElement('div');t.textContent=n.text;li.appendChild(t);const pin=document.createElement('button');pin.className='pin';pin.innerHTML=`<span class="material-symbols-rounded">${n.pinned?'star':'star_border'}</span>`;pin.onclick=e=>{e.stopPropagation();bounce(e.currentTarget);notes[i].pinned=!notes[i].pinned;save();};li.appendChild(pin);const del=document.createElement('button');del.className='del';del.innerHTML='<span class="material-symbols-rounded">close</span>';del.onclick=e=>{e.stopPropagation();bounce(e.currentTarget);notes.splice(i,1);save();};li.appendChild(del);li.onclick=()=>{bounce(li);editIndex=i;openEditor(n.text);};list.appendChild(li);});const q=search.value.toLowerCase();[...list.children].forEach(li=>{li.style.display=notes[li.dataset.i].text.toLowerCase().includes(q)?'':'none';});}
-function save(){localStorage.setItem('notes',JSON.stringify(notes));render();}
-function openEditor(v=''){text.value=v;modal.classList.add('show');text.focus();}
-function closeEditor(){modal.classList.remove('show');editIndex=null;}
-document.getElementById('add').onclick=e=>{bounce(e.currentTarget);openEditor();};document.getElementById('clear').onclick=e=>{bounce(e.currentTarget);if(notes.length&&confirm('Clear all?')){notes=[];save();}};document.getElementById('close').onclick=e=>{bounce(e.currentTarget);closeEditor();};document.getElementById('save').onclick=e=>{bounce(e.currentTarget);const v=text.value.trim();if(v){if(editIndex!=null)notes[editIndex].text=v;else notes.push({text:v,pinned:false});save();}closeEditor();};search.parentElement.addEventListener('click',e=>bounce(e.currentTarget));search.addEventListener('input',e=>{const q=e.target.value.toLowerCase();[...list.children].forEach(li=>{li.style.display=notes[li.dataset.i].text.toLowerCase().includes(q)?'':'none';});});render();
+const cityEl=document.getElementById('city'),tempEl=document.getElementById('temp'),descEl=document.getElementById('desc');
+const form=document.getElementById('search'),q=document.getElementById('q'),clearBtn=document.getElementById('clear');
+const locBtn=document.getElementById('loc'),reloadBtn=document.getElementById('reload');
+let lastPos=null;
+function setVH(){document.documentElement.style.setProperty('--vh',window.innerHeight*0.01+'px');}
+setVH();window.addEventListener('resize',setVH);
+function show(el,text){el.textContent=text;el.classList.add('show');}
+function weatherDesc(code){return({0:'Clear',1:'Mainly Clear',2:'Cloudy',3:'Overcast',45:'Fog',48:'Fog',51:'Drizzle',53:'Drizzle',55:'Drizzle',61:'Rain',63:'Rain',65:'Rain',71:'Snow',73:'Snow',75:'Snow',80:'Shower',81:'Shower',82:'Shower',95:'Storm'}[code]||'Weather');}
+async function getWeather(lat,lon,name){lastPos={lat,lon,name};const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`);const j=await r.json();const w=j.current_weather;show(cityEl,(name||'').split(' ').slice(0,3).join(' '));show(tempEl,Math.round(w.temperature)+'°');show(descEl,weatherDesc(w.weathercode));}
+form.addEventListener('submit',async e=>{e.preventDefault();const v=q.value.trim();if(!v)return;const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?count=1&name=${encodeURIComponent(v)}`);const j=await r.json();if(j.results&&j.results[0]){const s=j.results[0];getWeather(s.latitude,s.longitude,s.name);}});
+locBtn.addEventListener('click',()=>{navigator.geolocation&&navigator.geolocation.getCurrentPosition(p=>getWeather(p.coords.latitude,p.coords.longitude,'Here'));});
+reloadBtn.addEventListener('click',()=>{if(lastPos)getWeather(lastPos.lat,lastPos.lon,lastPos.name);});
+q.addEventListener('input',e=>{clearBtn.classList.toggle('hidden',!e.target.value);});
+clearBtn.addEventListener('click',()=>{q.value='';clearBtn.classList.add('hidden');q.focus();});
 </script>
 </body>
 </html>

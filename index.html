@@ -1,1 +1,93 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,600,1,0&display=swap" rel="stylesheet">
+<title>Weather</title>
+<style>
+:root{--accent:#6B8B9F;--bg:#F9F5EC;--vh:1vh;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg);
+  color:#222;
+  height:calc(var(--vh,1vh)*100);
+  display:flex;flex-direction:column;align-items:center;
+}
+header{padding:60px 20px 20px;text-align:center;}
+h1{margin:0;font-weight:500;font-size:48px;}
+h2{margin:8px 0 0;font-weight:400;font-size:20px;opacity:.6;}
+main{flex:1;width:100%;overflow-y:auto;}
+#hours{display:flex;gap:12px;padding:20px;overflow-x:auto;}
+.hour{
+  flex:0 0 80px;background:rgba(255,255,255,0.6);backdrop-filter:blur(10px);
+  border-radius:20px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;transition:transform .2s ease,opacity .2s ease;
+}
+.hour:hover{transform:scale(1.05);}
+#detail{position:fixed;inset:0;background:rgba(0,0,0,0.2);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s ease;}
+#detail.show{opacity:1;pointer-events:auto;}
+#sheet{background:var(--bg);width:100%;border-radius:24px 24px 0 0;padding:20px;transform:translateY(100%);transition:transform .3s ease;position:relative;}
+#detail.show #sheet{transform:translateY(0);}
+#sheet .close{position:absolute;top:12px;right:12px;background:none;font-size:24px;line-height:1;padding:4px;border:none;}
+nav.bottom{position:fixed;left:0;right:0;bottom:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:12px;}
+.pill{
+  width:100px;height:44px;background:rgba(255,255,255,0.6);backdrop-filter:blur(10px);
+  border-radius:22px;border:none;display:flex;align-items:center;justify-content:center;gap:6px;font-size:16px;color:#222;
+}
+.pill span.material-symbols-rounded{font-size:24px;}
+.material-symbols-rounded{font-variation-settings:'FILL' 1,'wght' 600,'GRAD' 0,'opsz' 24;}
+#searchOverlay{position:fixed;inset:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s ease;}
+#searchOverlay.show{opacity:1;pointer-events:auto;}
+#searchBox{position:relative;background:var(--bg);padding:20px;border-radius:24px;width:80%;max-width:320px;display:flex;gap:12px;}
+#searchBox input{flex:1;border:none;background:rgba(255,255,255,0.6);border-radius:22px;padding:10px 16px;font-size:16px;}
+#searchBox button{background:none;border:none;font-size:24px;line-height:1;}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="temp">--°</h1>
+  <h2 id="place">Loading...</h2>
+</header>
+<main>
+  <div id="hours"></div>
+</main>
+<div id="detail">
+  <div id="sheet">
+    <button class="close" id="closeDetail"><span class="material-symbols-rounded">close</span></button>
+    <div id="detailContent"></div>
+  </div>
+</div>
+<nav class="bottom">
+  <button class="pill" id="locBtn"><span class="material-symbols-rounded">my_location</span><span>Locate</span></button>
+  <button class="pill" id="searchBtn"><span class="material-symbols-rounded">search</span><span>Search</span></button>
+  <button class="pill" id="refreshBtn"><span class="material-symbols-rounded">refresh</span><span>Reload</span></button>
+</nav>
+<div id="searchOverlay">
+  <div id="searchBox">
+    <input type="text" id="cityInput" placeholder="City">
+    <button id="closeSearch"><span class="material-symbols-rounded">close</span></button>
+  </div>
+</div>
+<script>
+const root=document.documentElement;function setVh(){root.style.setProperty('--vh',window.innerHeight*0.01+'px');}window.addEventListener('resize',setVh);setVh();
+const tempEl=document.getElementById('temp');const placeEl=document.getElementById('place');const hoursEl=document.getElementById('hours');
+const detail=document.getElementById('detail');const detailContent=document.getElementById('detailContent');
+const closeDetail=document.getElementById('closeDetail');closeDetail.onclick=()=>detail.classList.remove('show');
+const searchOverlay=document.getElementById('searchOverlay');
+let currentLoc=null;
+function fetchCity(name){fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1`).then(r=>r.json()).then(d=>{if(d&&d.results&&d.results[0]){const{latitude,longitude,name:n}=d.results[0];currentLoc={lat:latitude,lon:longitude,name:n};loadWeather(latitude,longitude,n);}});}
+function loadWeather(lat,lon,name){fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m&timezone=auto`).then(r=>r.json()).then(d=>{currentLoc={lat,lon,name:name||d.timezone};tempEl.textContent=Math.round(d.current_weather.temperature)+'°';placeEl.textContent=name||d.timezone;hoursEl.innerHTML='';d.hourly.time.slice(0,24).forEach((t,i)=>{const item=document.createElement('div');item.className='hour';item.innerHTML=`<span>${new Date(t).getHours()}:00</span><span>${Math.round(d.hourly.temperature_2m[i])}°</span>`;item.onclick=()=>{detailContent.innerHTML=`<h3>${new Date(t).toLocaleString()}</h3><p>Temp: ${Math.round(d.hourly.temperature_2m[i])}°C</p>`;detail.classList.add('show');};hoursEl.appendChild(item);});});}
+document.getElementById('locBtn').onclick=()=>navigator.geolocation.getCurrentPosition(p=>loadWeather(p.coords.latitude,p.coords.longitude));
+document.getElementById('refreshBtn').onclick=()=>{if(currentLoc)loadWeather(currentLoc.lat,currentLoc.lon,currentLoc.name);};
+document.getElementById('searchBtn').onclick=()=>{searchOverlay.classList.add('show');document.getElementById('cityInput').focus();};
+document.getElementById('closeSearch').onclick=()=>searchOverlay.classList.remove('show');
+document.getElementById('cityInput').addEventListener('keydown',e=>{if(e.key==='Enter'){fetchCity(e.target.value);searchOverlay.classList.remove('show');}});
+navigator.geolocation.getCurrentPosition(p=>loadWeather(p.coords.latitude,p.coords.longitude),()=>{placeEl.textContent='Location';});
+</script>
+</body>
+</html>

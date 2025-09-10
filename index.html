@@ -1,87 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Notes</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400&display=swap" rel="stylesheet">
-  <style>
-    html,body{height:100%;margin:0;background:#F9F5EC;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
-    #notes{padding:calc(env(safe-area-inset-top)+20px) 20px calc(env(safe-area-inset-bottom)+80px);display:flex;flex-direction:column;gap:12px;}
-    .note{position:relative;background:rgba(255,255,255,.8);backdrop-filter:blur(20px);border-radius:16px;padding:12px 48px 12px 16px;animation:fadeIn .3s ease;}
-    .note span{display:block;white-space:pre-wrap;word-break:break-word;color:#222;}
-    .delete{position:absolute;top:8px;right:8px;width:28px;height:28px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;}
-    .delete .material-symbols-rounded{font-size:20px;}
-    #nav{position:fixed;left:0;right:0;bottom:0;padding:0 20px calc(env(safe-area-inset-bottom)+12px);display:flex;justify-content:center;gap:12px;}
-    #search{flex:1;height:44px;border:none;border-radius:22px;padding:0 16px;font-size:16px;background:rgba(255,255,255,.8);backdrop-filter:blur(20px);box-shadow:0 2px 4px rgba(0,0,0,.1);}
-    #addBtn{width:44px;height:44px;border:none;border-radius:22px;background:rgba(255,255,255,.8);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,.1);cursor:pointer;}
-    #addBtn .material-symbols-rounded{font-size:24px;}
-    #addSheet{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;}
-    #addSheet.active{opacity:1;pointer-events:auto;}
-    .sheet{background:#F9F5EC;width:100%;border-top-left-radius:20px;border-top-right-radius:20px;padding:20px;transform:translateY(100%);transition:transform .3s;}
-    #addSheet.active .sheet{transform:translateY(0);}
-    textarea{width:100%;height:120px;border:none;border-radius:12px;padding:12px;font-size:16px;resize:none;background:rgba(255,255,255,.8);}
-    .sheet-actions{margin-top:12px;display:flex;justify-content:flex-end;gap:12px;}
-    .sheet-actions button{height:36px;padding:0 20px;border:none;border-radius:18px;background:rgba(0,0,0,.1);cursor:pointer;}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Reels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+<style>
+:root{--vh:1vh;}
+html,body{height:100%;margin:0;background:#F9F5EC;font-family:'Inter',sans-serif;overflow:hidden;}
+main{height:calc(var(--vh) * 100);overflow-y:auto;scroll-snap-type:y mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;touch-action:pan-y;}
+section{height:calc(var(--vh) * 100);scroll-snap-align:start;position:relative;display:flex;align-items:center;justify-content:center;animation:fade .5s ease;}
+video{width:100%;height:100%;object-fit:cover;}
+nav{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 16px);transform:translateX(-50%);display:flex;gap:12px;z-index:10;}
+.pill{width:52px;height:52px;border:none;border-radius:26px;background:rgba(255,255,255,.6);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;padding:0;}
+.pill span{font-size:28px;line-height:1;}
+@keyframes fade{from{opacity:0;transform:scale(.97);}to{opacity:1;transform:scale(1);}}
+</style>
 </head>
 <body>
-  <div id="notes"></div>
-  <div id="addSheet">
-    <div class="sheet">
-      <textarea id="newText" placeholder="Write note"></textarea>
-      <div class="sheet-actions">
-        <button id="cancelBtn">Cancel</button>
-        <button id="saveBtn">Save</button>
-      </div>
-    </div>
-  </div>
-  <div id="nav">
-    <button id="addBtn"><span class="material-symbols-rounded">add</span></button>
-    <input id="search" type="text" placeholder="Search">
-  </div>
-  <script>
-    const notesEl=document.getElementById('notes');
-    const addBtn=document.getElementById('addBtn');
-    const sheet=document.getElementById('addSheet');
-    const cancelBtn=document.getElementById('cancelBtn');
-    const saveBtn=document.getElementById('saveBtn');
-    const newText=document.getElementById('newText');
-    const search=document.getElementById('search');
-    let notes=JSON.parse(localStorage.getItem('notes')||'[]');
-
-    function save(){localStorage.setItem('notes',JSON.stringify(notes));}
-    function render(filter=''){
-      notesEl.innerHTML='';
-      notes.filter(n=>n.text.toLowerCase().includes(filter.toLowerCase())).forEach(n=>{
-        const div=document.createElement('div');
-        div.className='note';
-        const span=document.createElement('span');
-        span.textContent=n.text;
-        div.appendChild(span);
-        const del=document.createElement('button');
-        del.className='delete';
-        del.innerHTML='<span class="material-symbols-rounded">close</span>';
-        del.onclick=()=>{notes=notes.filter(x=>x.id!==n.id);save();render(search.value);};
-        div.appendChild(del);
-        notesEl.appendChild(div);
-      });
-    }
-
-    addBtn.onclick=()=>{sheet.classList.add('active');newText.focus();};
-    cancelBtn.onclick=()=>{sheet.classList.remove('active');newText.value='';};
-    saveBtn.onclick=()=>{
-      const t=newText.value.trim();
-      if(t){notes.unshift({id:Date.now(),text:t});save();render(search.value);newText.value='';}
-      sheet.classList.remove('active');
-    };
-    search.oninput=e=>render(e.target.value);
-    render();
-  </script>
+<main id="feed"></main>
+<nav>
+  <button class="pill"><span class="material-symbols-rounded">home</span></button>
+  <button class="pill"><span class="material-symbols-rounded">search</span></button>
+  <button class="pill"><span class="material-symbols-rounded">person</span></button>
+</nav>
+<script>
+const feed=document.getElementById('feed');
+const videos=[
+  'https://assets.mixkit.co/videos/preview/mixkit-perfection-of-geometry-307.mp4',
+  'https://assets.mixkit.co/videos/preview/mixkit-aerial-shot-of-a-city-12.mp4',
+  'https://assets.mixkit.co/videos/preview/mixkit-open-car-sunroof-view-109.mp4'
+];
+let i=0;
+function setVH(){document.documentElement.style.setProperty('--vh', (window.innerHeight*0.01)+'px');}
+setVH(); addEventListener('resize', setVH);
+function addVideo(){
+  const src=videos[i%videos.length]; i++;
+  const sec=document.createElement('section');
+  const vid=document.createElement('video');
+  Object.assign(vid,{src,autoplay:true,loop:true,muted:true,playsInline:true});
+  sec.appendChild(vid); feed.appendChild(sec);
+  observer.observe(vid);
+}
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{e.isIntersecting?e.target.play():e.target.pause();});
+},{threshold:0.6});
+feed.addEventListener('scroll',()=>{
+  if(feed.scrollTop + feed.clientHeight >= feed.scrollHeight-2) addVideo();
+});
+for(let j=0;j<3;j++) addVideo();
+</script>
 </body>
 </html>
-

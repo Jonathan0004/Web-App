@@ -23,17 +23,16 @@ nav{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 16px);tran
 <body>
 <main id="feed"></main>
 <nav>
-  <button class="pill"><span class="material-symbols-rounded">home</span></button>
-  <button class="pill"><span class="material-symbols-rounded">search</span></button>
-  <button class="pill"><span class="material-symbols-rounded">person</span></button>
+  <button id="homeBtn" class="pill"><span class="material-symbols-rounded">home</span></button>
+  <button id="searchBtn" class="pill"><span class="material-symbols-rounded">search</span></button>
+  <button id="profileBtn" class="pill"><span class="material-symbols-rounded">person</span></button>
 </nav>
 <script>
 const feed=document.getElementById('feed');
 let i=0;
 function setVH(){document.documentElement.style.setProperty('--vh', (window.innerHeight*0.01)+'px');}
 setVH(); addEventListener('resize', setVH);
-function addImage(){
-  const seed=Date.now()+i++;
+function addImage(seed=Date.now()+i++){
   const sec=document.createElement('section');
   const img=new Image();
   img.src=`https://picsum.photos/seed/${seed}/1080/1920`;
@@ -46,6 +45,17 @@ feed.addEventListener('scroll',()=>{
   if(feed.scrollTop + feed.clientHeight >= feed.scrollHeight-2) addImage();
 });
 for(let j=0;j<3;j++) addImage();
+
+document.getElementById('homeBtn').addEventListener('click',()=>{
+  feed.scrollTo({top:0,behavior:'smooth'});
+});
+document.getElementById('searchBtn').addEventListener('click',()=>{
+  const seed=prompt('Enter image seed:');
+  if(seed) addImage(seed);
+});
+document.getElementById('profileBtn').addEventListener('click',()=>{
+  alert('Profile button clicked');
+});
 </script>
 </body>
 </html>

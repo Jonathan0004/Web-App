@@ -18,18 +18,24 @@ nav{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 16px);tran
 .pill{width:64px;height:40px;border:none;border-radius:20px;background:rgba(255,255,255,.6);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;padding:0;color:#222;}
 .pill span{font-size:24px;line-height:1;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;}
 @keyframes fade{from{opacity:0;transform:scale(.97);}to{opacity:1;transform:scale(1);}}
-dialog{border:none;border-radius:12px;padding:20px;max-width:90%;}
+dialog{border:none;border-radius:12px;padding:20px;max-width:90%;background:rgba(255,255,255,.9);backdrop-filter:blur(20px);}
 dialog form{display:flex;gap:8px;}
-dialog input{flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;}
+dialog input,dialog button{border:none;border-radius:20px;background:rgba(255,255,255,.6);backdrop-filter:blur(20px);padding:8px 12px;color:#222;}
+dialog input{flex:1;}
+dialog button{cursor:pointer;}
+body.dark{background:#222;color:#eee;}
+body.dark nav .pill,body.dark dialog input,body.dark dialog button{background:rgba(0,0,0,.6);color:#eee;}
+body.dark dialog{background:rgba(34,34,34,.9);}
 </style>
 </head>
 <body>
 <main id="feed"></main>
-<nav>
-  <button id="homeBtn" class="pill"><span class="material-symbols-rounded">home</span></button>
-  <button id="searchBtn" class="pill"><span class="material-symbols-rounded">search</span></button>
-  <button id="profileBtn" class="pill"><span class="material-symbols-rounded">person</span></button>
-</nav>
+ <nav>
+   <button id="homeBtn" class="pill"><span class="material-symbols-rounded">home</span></button>
+   <button id="searchBtn" class="pill"><span class="material-symbols-rounded">search</span></button>
+   <button id="profileBtn" class="pill"><span class="material-symbols-rounded">person</span></button>
+   <button id="themeBtn" class="pill"><span class="material-symbols-rounded">dark_mode</span></button>
+ </nav>
 <dialog id="searchDialog">
   <form id="searchForm" method="dialog">
     <input id="searchInput" type="text" placeholder="Image seed" />
@@ -65,6 +71,7 @@ for(let j=0;j<3;j++) addImage();
 const homeBtn=document.getElementById('homeBtn');
 const searchBtn=document.getElementById('searchBtn');
 const profileBtn=document.getElementById('profileBtn');
+const themeBtn=document.getElementById('themeBtn');
 const searchDialog=document.getElementById('searchDialog');
 const searchForm=document.getElementById('searchForm');
 const searchInput=document.getElementById('searchInput');
@@ -96,6 +103,13 @@ searchCancel.addEventListener('click',()=>{
 
 profileBtn.addEventListener('click',()=>{
   profileDialog.showModal();
+});
+
+let dark=false;
+themeBtn.addEventListener('click',()=>{
+  dark=!dark;
+  document.body.classList.toggle('dark',dark);
+  themeBtn.querySelector('span').textContent=dark?'light_mode':'dark_mode';
 });
 </script>
 </body>

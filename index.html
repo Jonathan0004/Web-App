@@ -3,55 +3,88 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Reels</title>
+<title>Scroll</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
 <style>
 :root{--vh:1vh;}
-html,body{height:100%;margin:0;background:#F9F5EC;font-family:'Inter',sans-serif;overflow:hidden;}
-main{height:calc(var(--vh) * 100);overflow-y:auto;scroll-snap-type:y mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;touch-action:pan-y;}
-section{height:calc(var(--vh) * 100);scroll-snap-align:start;position:relative;display:flex;align-items:center;justify-content:center;animation:fade .5s ease;}
-video{width:100%;height:100%;object-fit:cover;}
+html,body{height:100%;margin:0;background:#F9F5EC;font-family:'Inter',sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;}
+main{height:calc(var(--vh)*100);overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;touch-action:pan-y;scroll-behavior:smooth;}
+section{height:calc(var(--vh)*100);scroll-snap-align:start;position:relative;display:flex;align-items:center;justify-content:center;animation:fade .5s ease;}
+img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s ease;}
 nav{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 16px);transform:translateX(-50%);display:flex;gap:12px;z-index:10;}
 .pill{width:52px;height:52px;border:none;border-radius:26px;background:rgba(255,255,255,.6);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;padding:0;}
 .pill span{font-size:28px;line-height:1;}
+#searchBar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 80px);transform:translate(-50%,20px);display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.6);backdrop-filter:blur(20px);border-radius:26px;padding:0 16px;width:80%;max-width:360px;opacity:0;pointer-events:none;transition:transform .3s ease,opacity .3s ease;}
+#searchBar.show{transform:translate(-50%,0);opacity:1;pointer-events:auto;}
+#searchBar input{flex:1;border:none;background:transparent;font-size:16px;line-height:52px;height:52px;outline:none;}
+.close{width:40px;height:40px;border:none;border-radius:20px;background:rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;padding:0;}
+.close span{font-size:24px;line-height:1;}
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);backdrop-filter:blur(20px);opacity:0;pointer-events:none;transition:opacity .3s ease;z-index:20;}
+.overlay.show{opacity:1;pointer-events:auto;}
+.card{background:rgba(255,255,255,.8);border-radius:24px;width:70%;max-width:300px;aspect-ratio:1;position:relative;display:flex;align-items:center;justify-content:center;transform:scale(.96);transition:transform .3s ease;}
+.overlay.show .card{transform:scale(1);}
+.avatar{width:120px;height:120px;border-radius:60px;background:rgba(0,0,0,.1);}
 @keyframes fade{from{opacity:0;transform:scale(.97);}to{opacity:1;transform:scale(1);}}
 </style>
 </head>
 <body>
 <main id="feed"></main>
 <nav>
-  <button class="pill"><span class="material-symbols-rounded">home</span></button>
-  <button class="pill"><span class="material-symbols-rounded">search</span></button>
-  <button class="pill"><span class="material-symbols-rounded">person</span></button>
+  <button id="home" class="pill"><span class="material-symbols-rounded">home</span></button>
+  <button id="search" class="pill"><span class="material-symbols-rounded">search</span></button>
+  <button id="profile" class="pill"><span class="material-symbols-rounded">person</span></button>
 </nav>
+<div id="searchBar">
+  <button id="submitSearch" class="close"><span class="material-symbols-rounded">search</span></button>
+  <input id="q" type="text" inputmode="search" autocomplete="off">
+  <button id="closeSearch" class="close"><span class="material-symbols-rounded">close</span></button>
+</div>
+<div id="profilePane" class="overlay">
+  <div class="card">
+    <button id="closeProfile" class="close"><span class="material-symbols-rounded">close</span></button>
+    <div class="avatar"></div>
+  </div>
+</div>
 <script>
 const feed=document.getElementById('feed');
-const videos=[
-  'https://assets.mixkit.co/videos/preview/mixkit-perfection-of-geometry-307.mp4',
-  'https://assets.mixkit.co/videos/preview/mixkit-aerial-shot-of-a-city-12.mp4',
-  'https://assets.mixkit.co/videos/preview/mixkit-open-car-sunroof-view-109.mp4'
-];
-let i=0;
-function setVH(){document.documentElement.style.setProperty('--vh', (window.innerHeight*0.01)+'px');}
-setVH(); addEventListener('resize', setVH);
-function addVideo(){
-  const src=videos[i%videos.length]; i++;
+let i=0,query='';
+function setVH(){document.documentElement.style.setProperty('--vh',(window.innerHeight*0.01)+'px');}
+setVH();addEventListener('resize',setVH);
+function addImage(){
+  const seed=Date.now()+i++;
+  const img=new Image();
+  img.src=query?`https://source.unsplash.com/1080x1920/?${encodeURIComponent(query)}&sig=${seed}`:`https://picsum.photos/seed/${seed}/1080/1920`;
+  img.alt='';
+  img.onload=()=>img.style.opacity='1';
   const sec=document.createElement('section');
-  const vid=document.createElement('video');
-  Object.assign(vid,{src,autoplay:true,loop:true,muted:true,playsInline:true});
-  sec.appendChild(vid); feed.appendChild(sec);
-  observer.observe(vid);
+  sec.appendChild(img);
+  feed.appendChild(sec);
 }
-const observer=new IntersectionObserver(entries=>{
-  entries.forEach(e=>{e.isIntersecting?e.target.play():e.target.pause();});
-},{threshold:0.6});
-feed.addEventListener('scroll',()=>{
-  if(feed.scrollTop + feed.clientHeight >= feed.scrollHeight-2) addVideo();
-});
-for(let j=0;j<3;j++) addVideo();
+feed.addEventListener('scroll',()=>{if(feed.scrollTop+feed.clientHeight>=feed.scrollHeight-2) addImage();});
+for(let j=0;j<3;j++) addImage();
+document.getElementById('home').onclick=()=>feed.scrollTo({top:0,behavior:'smooth'});
+const searchBar=document.getElementById('searchBar');
+const q=document.getElementById('q');
+function performSearch(){
+  query=q.value.trim();
+  feed.innerHTML='';i=0;
+  for(let j=0;j<3;j++) addImage();
+  searchBar.classList.remove('show');
+}
+document.getElementById('search').onclick=()=>{
+  if(searchBar.classList.contains('show')) searchBar.classList.remove('show');
+  else{searchBar.classList.add('show');q.focus();}
+};
+document.getElementById('submitSearch').onclick=performSearch;
+document.getElementById('closeSearch').onclick=()=>searchBar.classList.remove('show');
+q.addEventListener('keydown',e=>{if(e.key==='Enter') performSearch();});
+const profilePane=document.getElementById('profilePane');
+document.getElementById('profile').onclick=()=>profilePane.classList.add('show');
+document.getElementById('closeProfile').onclick=()=>profilePane.classList.remove('show');
+profilePane.addEventListener('click',e=>{if(e.target===profilePane) profilePane.classList.remove('show');});
 </script>
 </body>
 </html>

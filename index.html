@@ -1,90 +1,86 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>My GitHub Pages Test</title>
-  <style>
-    /* Minimal, readable styling */
-    :root { --max: 720px; }
-    html, body { margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      line-height: 1.5;
-      display: flex; min-height: 100svh;
-      background: #f6f7f9;
-      color: #111;
-    }
-    main {
-      margin: auto;
-      max-width: var(--max);
-      width: 100%;
-      padding: 24px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.08);
-    }
-    h1 { margin-top: 0; font-size: 1.8rem; }
-    .ok {
-      display: inline-block; padding: 10px 14px; border-radius: 8px;
-      border: 1px solid #ddd; background: #fafafa;
-    }
-    button {
-      padding: 10px 16px; border-radius: 8px; border: 1px solid #222;
-      background: transparent; cursor: pointer; font: inherit;
-    }
-    button:active { transform: translateY(1px); }
-    code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; }
-    footer { margin-top: 24px; font-size: .9rem; color: #555; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Stopwatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,600,1,0&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#F9F5EC;--glass:rgba(255,255,255,.6);}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:#1a1a1a;font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+  #time{margin-top:20vh;text-align:center;font-size:clamp(48px,15vw,96px);letter-spacing:.05em;}
+  #controls{position:fixed;bottom:calc(env(safe-area-inset-bottom)+16px);left:50%;transform:translateX(-50%);display:flex;gap:12px;}
+  .pill{height:56px;min-width:56px;padding:0 24px;border-radius:28px;border:none;background:var(--glass);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:24px;color:#333;cursor:pointer;transition:transform .2s,background .3s;}
+  .pill:active{transform:scale(.95);}
+  .material-symbols-rounded{font-variation-settings:'FILL'1,'wght'600,'GRAD'0,'opsz'24;line-height:1;}
+  #searchOverlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .3s;}
+  #searchOverlay.active{opacity:1;pointer-events:auto;}
+  #closeSearch{position:absolute;top:calc(env(safe-area-inset-top)+16px);right:16px;background:none;border:none;padding:0;}
+  #searchBar{margin:calc(env(safe-area-inset-top)+64px) auto 0;width:min(90%,400px);position:relative;}
+  #searchBar input{width:100%;height:44px;border-radius:22px;border:none;padding:0 44px 0 20px;font-size:16px;background:#fff;}
+  #searchBar span{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#555;}
+</style>
 </head>
 <body>
-  <main>
-    <h1>✅ GitHub Pages is working!</h1>
-    <p class="ok">
-      If you’re seeing this at your <strong>GitHub Pages URL</strong> on your iPhone in Safari,
-      your deployment is good to go.
-    </p>
+<div id="time">00:00.00</div>
 
-    <h2>Quick checks</h2>
-    <ul>
-      <li><strong>HTML loaded:</strong> You’re reading it.</li>
-      <li><strong>CSS loaded:</strong> Card has rounded corners & shadow.</li>
-      <li><strong>JS running:</strong> Current time: <span id="time">…</span></li>
-    </ul>
+<div id="controls">
+  <button id="searchBtn" class="pill"><span class="material-symbols-rounded">search</span></button>
+  <button id="startBtn" class="pill"><span class="material-symbols-rounded">play_arrow</span></button>
+  <button id="resetBtn" class="pill"><span class="material-symbols-rounded">restart_alt</span></button>
+</div>
 
-    <p>
-      <button id="btn">Tap me</button>
-      <span id="output" aria-live="polite" style="margin-left: 10px;"></span>
-    </p>
+<div id="searchOverlay">
+  <button id="closeSearch"><span class="material-symbols-rounded">close</span></button>
+  <div id="searchBar">
+    <input type="search" placeholder="Search">
+    <span class="material-symbols-rounded">search</span>
+  </div>
+</div>
 
-    <h2>Project files</h2>
-    <p>
-      Put this file at the <em>root</em> of your repo as <code>index.html</code>.
-      Add more pages (e.g., <code>about.html</code>) and link to them normally.
-    </p>
+<script>
+let start=0,elapsed=0,raf,running=false;
+const timeEl=document.getElementById('time');
+function pad(n){return n.toString().padStart(2,'0');}
+function format(ms){
+  const m=Math.floor(ms/60000);
+  const s=Math.floor(ms/1000)%60;
+  const ms2=Math.floor(ms%1000/10);
+  return pad(m)+':'+pad(s)+'.'+pad(ms2);
+}
+function update(){
+  const diff=performance.now()-start+elapsed;
+  timeEl.textContent=format(diff);
+  raf=requestAnimationFrame(update);
+}
+const startBtn=document.getElementById('startBtn');
+startBtn.addEventListener('click',()=>{
+  if(!running){
+    start=performance.now();
+    raf=requestAnimationFrame(update);
+    startBtn.innerHTML='<span class="material-symbols-rounded">pause</span>';
+  }else{
+    elapsed+=performance.now()-start;
+    cancelAnimationFrame(raf);
+    startBtn.innerHTML='<span class="material-symbols-rounded">play_arrow</span>';
+  }
+  running=!running;
+});
 
-    <footer>
-      <p>
-        Deployed via <em>Settings → Pages</em>. Branch: <code>main</code>, Folder: <code>/(root)</code>.
-      </p>
-    </footer>
-  </main>
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  start=performance.now();
+  elapsed=0;
+  timeEl.textContent='00:00.00';
+  if(!running){cancelAnimationFrame(raf);}
+});
 
-  <script>
-    // Show current time so you know JS is executing
-    const timeEl = document.getElementById('time');
-    const update = () => timeEl.textContent = new Date().toLocaleString();
-    update(); setInterval(update, 1000);
-
-    // Simple interactivity test
-    const btn = document.getElementById('btn');
-    const out = document.getElementById('output');
-    btn.addEventListener('click', () => {
-      out.textContent = 'Button clicked! 🎉 (JS works)';
-      // Brief visual feedback
-      btn.disabled = true; setTimeout(() => btn.disabled = false, 500);
-    });
-  </script>
+const searchOverlay=document.getElementById('searchOverlay');
+document.getElementById('searchBtn').addEventListener('click',()=>searchOverlay.classList.add('active'));
+document.getElementById('closeSearch').addEventListener('click',()=>searchOverlay.classList.remove('active'));
+</script>
 </body>
 </html>

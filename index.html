@@ -85,8 +85,14 @@ const searchDialog=document.getElementById('searchDialog');
 const searchForm=document.getElementById('searchForm');
 const searchInput=document.getElementById('searchInput');
 const searchResults=document.getElementById('searchResults');
+const nav=document.querySelector('nav');
 
-function setVH(){document.documentElement.style.setProperty('--vh',(window.innerHeight*0.01)+'px');}
+function setVH(){
+ document.documentElement.style.setProperty('--vh',(window.innerHeight*0.01)+'px');
+ const navRect=nav.getBoundingClientRect();
+ const navHeight=navRect.height+(window.innerHeight-navRect.bottom);
+ document.documentElement.style.setProperty('--nav-height',navHeight+'px');
+}
 setVH();addEventListener('resize',setVH);
 
 const weekdays=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];

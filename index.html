@@ -65,6 +65,11 @@
       font-size:20px;
       margin-bottom:12px;
     }
+    #lists{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
     .list-item{
       background:#1c1c1e;
       border-radius:14px;
@@ -123,10 +128,44 @@
   <div class="count">3</div>
 </section>
 <h2>My Lists</h2>
-<div class="list-item">
-  <div class="left"><span class="material-symbols-rounded icon">delete</span><span>Recently Deleted</span></div>
-  <div class="count">5</div>
+<div id="lists">
+  <div class="list-item">
+    <div class="left"><span class="material-symbols-rounded icon">delete</span><span>Recently Deleted</span></div>
+    <div class="count">5</div>
+  </div>
 </div>
 <button class="fab"><span class="material-symbols-rounded">add</span></button>
+<script>
+  const listsContainer = document.getElementById('lists');
+  const nextUpCountEl = document.querySelector('.next-up .count');
+  let nextUpCount = parseInt(nextUpCountEl.textContent, 10);
+
+  document.querySelector('.fab').addEventListener('click', () => {
+    const name = prompt('List name?');
+    if (!name) return;
+    const count = parseInt(prompt('Number of reminders?'), 10);
+    if (isNaN(count)) return;
+
+    const item = document.createElement('div');
+    item.className = 'list-item';
+    item.innerHTML = `<div class="left"><span class="material-symbols-rounded icon">list</span><span>${name}</span></div><div class="count">${count}</div>`;
+    listsContainer.appendChild(item);
+
+    nextUpCount += count;
+    nextUpCountEl.textContent = nextUpCount;
+  });
+
+  document.querySelector('header .left button').addEventListener('click', () => {
+    const term = prompt('Search lists');
+    const items = listsContainer.querySelectorAll('.list-item');
+    items.forEach((i) => {
+      if (!term) {
+        i.style.display = 'flex';
+        return;
+      }
+      i.style.display = i.textContent.toLowerCase().includes(term.toLowerCase()) ? 'flex' : 'none';
+    });
+  });
+</script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+# .github/workflows/auto-enable-automerge.yml
 name: Auto-enable auto-merge on PRs to main
 
 on:
@@ -18,11 +19,12 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - uses: cli/cli-action@v2
-      - name: Enable auto-merge
+      - name: Authenticate GH CLI (uses GITHUB_TOKEN)
+        run: gh auth status || gh auth login --with-token <<< "${GITHUB_TOKEN}"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          PR="${{ github.event.pull_request.number }}"
-          # Choose one: --merge | --squash | --rebase
-          gh pr merge "$PR" --auto --squash
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Enable auto-merge (change method if you prefer)
+        run: gh pr merge "${{ github.event.pull_request.number }}" --auto --squash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

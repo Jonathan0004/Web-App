@@ -1,1 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,700,1,200&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F9F5EC;
+  --accent:#007AFF;
+  --radius:26px;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',sans-serif;}
+body{
+  background:var(--bg);
+  color:#111;
+  min-height:calc(var(--vh,1vh)*100);
+  padding-top:env(safe-area-inset-top);
+}
+#notes{
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-bottom:120px;
+}
+.note{
+  background:#fff;
+  border-radius:20px;
+  padding:16px 20px;
+  position:relative;
+  box-shadow:0 2px 4px rgba(0,0,0,0.06);
+  opacity:0;
+  transform:translateY(8px);
+  transition:opacity .3s ease,transform .3s ease;
+}
+.note.show{
+  opacity:1;
+  transform:translateY(0);
+}
+.note .del{
+  position:absolute;
+  top:8px;
+  right:12px;
+  width:24px;
+  height:24px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:transparent;
+  border:none;
+  padding:0;
+}
+#bottomBar{
+  position:fixed;
+  bottom:calc(env(safe-area-inset-bottom) + 12px);
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+#searchBar{
+  background:#fff;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0 16px;
+  height:52px;
+  width:200px;
+  border-radius:var(--radius);
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+}
+#searchInput{
+  border:none;
+  outline:none;
+  background:transparent;
+  flex:1;
+  font-size:16px;
+}
+.control{
+  width:52px;
+  height:52px;
+  border-radius:var(--radius);
+  background:#fff;
+  border:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  transition:transform .2s;
+}
+.control:active{
+  transform:scale(0.95);
+}
+.material-symbols-rounded{
+  font-variation-settings:'FILL' 1,'wght' 700,'GRAD' 200,'opsz' 24;
+  font-size:24px;
+  line-height:1;
+  color:var(--accent);
+}
+#editor{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.4);
+  backdrop-filter:blur(4px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .3s;
+}
+#editor.show{
+  opacity:1;
+  pointer-events:auto;
+}
+#editor textarea{
+  width:90%;
+  max-width:500px;
+  height:40vh;
+  border:none;
+  border-radius:20px;
+  padding:20px;
+  font-size:16px;
+  background:#fff;
+  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+#editor .actions{
+  margin-top:20px;
+  display:flex;
+  gap:12px;
+}
+#editor .actions button{
+  width:80px;
+  height:52px;
+  border-radius:var(--radius);
+  background:#fff;
+  border:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+  transition:transform .2s;
+}
+#editor .actions button:active{
+  transform:scale(0.95);
+}
+</style>
+</head>
+<body>
+<div id="notes"></div>
 
+<div id="bottomBar">
+  <div id="searchBar">
+    <span class="material-symbols-rounded">search</span>
+    <input id="searchInput" type="text" placeholder="Search">
+  </div>
+  <button id="addBtn" class="control">
+    <span class="material-symbols-rounded">add</span>
+  </button>
+</div>
+
+<div id="editor">
+  <textarea id="noteInput" maxlength="1000"></textarea>
+  <div class="actions">
+    <button id="cancelBtn"><span class="material-symbols-rounded">close</span></button>
+    <button id="saveBtn"><span class="material-symbols-rounded">check</span></button>
+  </div>
+</div>
+
+<script>
+const notesEl = document.getElementById('notes');
+let notes = JSON.parse(localStorage.getItem('notes') || '[]');
+
+function render(){
+  notesEl.innerHTML='';
+  notes.forEach((text,i)=>{
+    const n=document.createElement('div');
+    n.className='note';
+    n.textContent=text;
+    const del=document.createElement('button');
+    del.className='del';
+    del.innerHTML='<span class="material-symbols-rounded">close</span>';
+    del.onclick=()=>remove(i);
+    n.appendChild(del);
+    notesEl.appendChild(n);
+    requestAnimationFrame(()=>n.classList.add('show'));
+  });
+}
+function remove(i){
+  const n=notesEl.children[i];
+  n.classList.remove('show');
+  setTimeout(()=>{
+    notes.splice(i,1);
+    save();
+    render();
+  },300);
+}
+function add(text){
+  notes.unshift(text);
+  save();
+  render();
+}
+function save(){
+  localStorage.setItem('notes',JSON.stringify(notes));
+}
+render();
+
+const editor=document.getElementById('editor');
+const addBtn=document.getElementById('addBtn');
+const cancelBtn=document.getElementById('cancelBtn');
+const saveBtn=document.getElementById('saveBtn');
+const noteInput=document.getElementById('noteInput');
+
+addBtn.onclick=()=>{
+  editor.classList.add('show');
+  noteInput.value='';
+  noteInput.focus();
+};
+cancelBtn.onclick=()=>editor.classList.remove('show');
+saveBtn.onclick=()=>{
+  const val=noteInput.value.trim();
+  if(val) add(val);
+  editor.classList.remove('show');
+};
+
+const searchInput=document.getElementById('searchInput');
+searchInput.oninput=()=>{
+  const term=searchInput.value.toLowerCase();
+  [...notesEl.children].forEach(n=>{
+    const match=n.textContent.toLowerCase().includes(term);
+    n.style.display=match?'':'none';
+  });
+};
+
+function setVh(){
+  document.documentElement.style.setProperty('--vh',window.innerHeight*0.01+'px');
+}
+setVh();
+window.addEventListener('resize',setVh);
+</script>
+</body>
+</html>

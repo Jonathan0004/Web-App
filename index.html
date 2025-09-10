@@ -29,6 +29,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:#000;min-height:1
 header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;}
 header button{width:32px;height:32px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;}
 textarea{flex:1;border:none;padding:12px;font:inherit;background:transparent;outline:none;resize:none;}
+@keyframes bounce{0%,100%{transform:scale(1);}50%{transform:scale(0.92);}70%{transform:scale(1.04);}}
+.bounce{animation:bounce .3s cubic-bezier(.34,1.56,.64,1);}
 </style>
 </head>
 <body>
@@ -49,11 +51,12 @@ textarea{flex:1;border:none;padding:12px;font:inherit;background:transparent;out
 <script>
 function setVH(){document.documentElement.style.setProperty('--vh',`${window.innerHeight*0.01}px`);}setVH();window.addEventListener('resize',setVH);
 let notes=JSON.parse(localStorage.getItem('notes')||'[]');const list=document.getElementById('notes');const modal=document.getElementById('modal');const text=document.getElementById('text');let editIndex=null;
-function render(){list.innerHTML='';notes.forEach((n,i)=>{const li=document.createElement('li');li.className='note';li.textContent=n;const del=document.createElement('button');del.innerHTML='<span class="material-symbols-rounded">close</span>';del.onclick=e=>{e.stopPropagation();notes.splice(i,1);save();};li.appendChild(del);li.onclick=()=>{editIndex=i;openEditor(n);};list.appendChild(li);});}
+function bounce(el){el.classList.add('bounce');el.addEventListener('animationend',()=>el.classList.remove('bounce'),{once:true});}
+function render(){list.innerHTML='';notes.forEach((n,i)=>{const li=document.createElement('li');li.className='note';li.textContent=n;const del=document.createElement('button');del.innerHTML='<span class="material-symbols-rounded">close</span>';del.onclick=e=>{e.stopPropagation();bounce(e.currentTarget);notes.splice(i,1);save();};li.appendChild(del);li.onclick=()=>{bounce(li);editIndex=i;openEditor(n);};list.appendChild(li);});}
 function save(){localStorage.setItem('notes',JSON.stringify(notes));render();}
 function openEditor(v=''){text.value=v;modal.classList.add('show');text.focus();}
 function closeEditor(){modal.classList.remove('show');editIndex=null;}
-document.getElementById('add').onclick=()=>openEditor();document.getElementById('close').onclick=closeEditor;document.getElementById('save').onclick=()=>{const v=text.value.trim();if(v){if(editIndex!=null)notes[editIndex]=v;else notes.push(v);save();}closeEditor();};document.getElementById('search').addEventListener('input',e=>{const q=e.target.value.toLowerCase();[...list.children].forEach(li=>{li.style.display=li.textContent.toLowerCase().includes(q)?'':'none';});});render();
+document.getElementById('add').onclick=e=>{bounce(e.currentTarget);openEditor();};document.getElementById('close').onclick=e=>{bounce(e.currentTarget);closeEditor();};document.getElementById('save').onclick=e=>{bounce(e.currentTarget);const v=text.value.trim();if(v){if(editIndex!=null)notes[editIndex]=v;else notes.push(v);save();}closeEditor();};document.getElementById('search').addEventListener('input',e=>{const q=e.target.value.toLowerCase();[...list.children].forEach(li=>{li.style.display=li.textContent.toLowerCase().includes(q)?'':'none';});});render();
 </script>
 </body>
 </html>

@@ -1,1 +1,56 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>Gesture Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#F9F5EC; --fg:#222; --accent:#6C63FF; }
+  html,body{margin:0;height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);-webkit-tap-highlight-color:transparent;}
+  #game{position:relative;height:var(--vh,100vh);overflow:hidden;display:flex;justify-content:center;align-items:center;}
+  #arrow{font-size:64px;transition:opacity .2s,transform .2s;opacity:0;transform:scale(.8);}
+  #arrow.show{opacity:1;transform:scale(1);}  
+  #score{position:absolute;top:env(safe-area-inset-top,0);margin-top:12px;padding:6px 16px;border-radius:999px;background:rgba(255,255,255,.6);backdrop-filter:blur(10px);font-weight:600;}
+  .bottom{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0));display:flex;justify-content:center;gap:12px;padding:12px 0;}
+  .pill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.6);backdrop-filter:blur(10px);padding:10px 20px;border-radius:999px;font-size:16px;line-height:1;}
+  .pill span.material-symbols-rounded{font-size:24px;}
+  .material-symbols-rounded{font-variation-settings:'wght' 600;}
+  button.pill{border:none;background:rgba(255,255,255,.6);}
+  input[type=search]{border:none;background:transparent;outline:none;width:80px;font-size:16px;}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="score" class="pill">0</div>
+  <span id="arrow" class="material-symbols-rounded">arrow_upward</span>
+  <div class="bottom">
+    <div class="pill"><span class="material-symbols-rounded">search</span><input type="search" aria-label="search" /></div>
+    <button id="play" class="pill"><span class="material-symbols-rounded">play_arrow</span></button>
+  </div>
+</div>
+<script>
+const arrow = document.getElementById('arrow');
+const scoreEl = document.getElementById('score');
+const playBtn = document.getElementById('play');
+const dirs = ['arrow_upward','arrow_downward','arrow_back','arrow_forward'];
+let playing=false,score=0,startX=0,startY=0,current='';
+function layout(){document.documentElement.style.setProperty('--vh',window.innerHeight+'px');}
+layout();
+window.addEventListener('resize',layout);
+function next(){current=dirs[Math.floor(Math.random()*4)];arrow.textContent=current;arrow.classList.add('show');}
+function start(){score=0;scoreEl.textContent=score;playing=true;next();playBtn.innerHTML='<span class="material-symbols-rounded">pause</span>';}
+function stop(){playing=false;arrow.classList.remove('show');playBtn.innerHTML='<span class="material-symbols-rounded">play_arrow</span>';}
+playBtn.addEventListener('click',()=>playing?stop():start());
+arrow.addEventListener('transitionend',()=>{if(!playing)arrow.textContent='';});
+window.addEventListener('touchstart',e=>{if(!playing)return;startX=e.touches[0].clientX;startY=e.touches[0].clientY;});
+window.addEventListener('touchend',e=>{if(!playing)return;const dx=e.changedTouches[0].clientX-startX;const dy=e.changedTouches[0].clientY-startY;const absX=Math.abs(dx),absY=Math.abs(dy);
+let dir='';if(absX>20||absY>20){if(absX>absY)dir=dx>0?'arrow_forward':'arrow_back';else dir=dy>0?'arrow_downward':'arrow_upward';}
+if(dir&&dir===current){scoreEl.textContent=++score;arrow.classList.remove('show');setTimeout(next,200);}else{stop();}}
+);
+</script>
+</body>
+</html>

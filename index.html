@@ -2,85 +2,104 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Stopwatch</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,600,1,0&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#F9F5EC;--glass:rgba(255,255,255,.6);}
-  *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:#1a1a1a;font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;overflow:hidden;}
-  #time{margin-top:20vh;text-align:center;font-size:clamp(48px,15vw,96px);letter-spacing:.05em;}
-  #controls{position:fixed;bottom:calc(env(safe-area-inset-bottom)+16px);left:50%;transform:translateX(-50%);display:flex;gap:12px;}
-  .pill{height:56px;min-width:56px;padding:0 24px;border-radius:28px;border:none;background:var(--glass);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;font-size:24px;color:#333;cursor:pointer;transition:transform .2s,background .3s;}
-  .pill:active{transform:scale(.95);}
-  .material-symbols-rounded{font-variation-settings:'FILL'1,'wght'600,'GRAD'0,'opsz'24;line-height:1;}
-  #searchOverlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .3s;}
-  #searchOverlay.active{opacity:1;pointer-events:auto;}
-  #closeSearch{position:absolute;top:calc(env(safe-area-inset-top)+16px);right:16px;background:none;border:none;padding:0;}
-  #searchBar{margin:calc(env(safe-area-inset-top)+64px) auto 0;width:min(90%,400px);position:relative;}
-  #searchBar input{width:100%;height:44px;border-radius:22px;border:none;padding:0 44px 0 20px;font-size:16px;background:#fff;}
-  #searchBar span{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#555;}
+:root{--bg:#F9F5EC;--fg:#1a1a1a;--pill:rgba(255,255,255,.6);}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;min-height:100vh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);display:flex;flex-direction:column;}
+#time{margin-top:10vh;text-align:center;font-size:clamp(48px,15vw,96px);letter-spacing:.05em;}
+#laps{list-style:none;margin:16px auto 80px;padding:0;width:min(90%,400px);flex:1;overflow:auto;}
+#laps li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.08);font-size:14px;}
+#controls{position:fixed;bottom:calc(env(safe-area-inset-bottom)+16px);left:50%;transform:translateX(-50%);display:flex;gap:12px;}
+.pill{background:var(--pill);backdrop-filter:blur(10px);border:none;border-radius:28px;height:56px;padding:0 24px;display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--fg);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .3s,transform .3s;}
+.pill:active{transform:scale(.95);}
+.material-symbols-rounded{font-variation-settings:'FILL'0,'wght'400,'GRAD'0,'opsz'24;}
+#theme{position:fixed;top:calc(env(safe-area-inset-top)+16px);right:16px;}
+#searchOverlay{position:fixed;inset:0;background:var(--bg);opacity:0;pointer-events:none;display:flex;align-items:flex-start;justify-content:center;padding-top:calc(env(safe-area-inset-top)+60px);transition:opacity .3s;}
+#searchOverlay.active{opacity:1;pointer-events:auto;}
+#searchBox{width:80%;max-width:400px;height:44px;border:none;border-radius:22px;padding:0 44px 0 20px;font-size:16px;background:#fff;color:#000;}
+#closeSearch{position:absolute;top:calc(env(safe-area-inset-top)+16px);right:16px;background:none;border:none;}
+#undo{position:fixed;bottom:calc(env(safe-area-inset-bottom)+90px);left:50%;transform:translateX(-50%) translateY(100%);background:var(--pill);border-radius:28px;padding:12px 24px;display:flex;align-items:center;gap:12px;opacity:0;transition:transform .3s,opacity .3s;}
+#undo.show{transform:translateX(-50%) translateY(0);opacity:1;}
+#confirm{position:fixed;inset:0;background:rgba(0,0,0,.2);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s;}
+#confirm.active{opacity:1;pointer-events:auto;}
+#confirm .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-top-left-radius:20px;border-top-right-radius:20px;padding:24px 24px calc(env(safe-area-inset-bottom)+24px);transform:translateY(100%);transition:transform .3s;}
+#confirm.active .sheet{transform:translateY(0);}
+.sr-only{position:absolute;clip:rect(0 0 0 0);clip-path:inset(50%);height:1px;width:1px;overflow:hidden;}
+[data-contrast="high"]{--bg:#000;--fg:#fff;--pill:rgba(255,255,255,.2);}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
+html[dir="rtl"] #controls{flex-direction:row-reverse;}
 </style>
 </head>
 <body>
-<div id="time">00:00.00</div>
-
-<div id="controls">
-  <button id="searchBtn" class="pill"><span class="material-symbols-rounded">search</span></button>
-  <button id="startBtn" class="pill"><span class="material-symbols-rounded">play_arrow</span></button>
-  <button id="resetBtn" class="pill"><span class="material-symbols-rounded">restart_alt</span></button>
-</div>
-
-<div id="searchOverlay">
-  <button id="closeSearch"><span class="material-symbols-rounded">close</span></button>
-  <div id="searchBar">
-    <input type="search" placeholder="Search">
-    <span class="material-symbols-rounded">search</span>
+<div id="time" role="timer" aria-live="off">00:00:00.00</div>
+<ul id="laps" aria-label="Laps"></ul>
+<div id="live" class="sr-only" aria-live="polite"></div>
+<nav id="controls">
+  <button id="search" class="pill" aria-label="Search"><span class="material-symbols-rounded">search</span></button>
+  <button id="lap" class="pill" aria-label="Lap"><span class="material-symbols-rounded">flag</span></button>
+  <button id="start" class="pill" aria-label="Start"><span class="material-symbols-rounded">play_arrow</span></button>
+</nav>
+<button id="theme" class="pill" aria-label="Contrast"><span class="material-symbols-rounded">contrast</span></button>
+<div id="undo"></div>
+<section id="confirm">
+  <div class="sheet">
+    <p style="text-align:center;margin:0;">Reset?</p>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">
+      <button id="confirmYes" class="pill" style="min-width:80px;">Yes</button>
+      <button id="confirmNo" class="pill" style="min-width:80px;">No</button>
+    </div>
   </div>
-</div>
-
-<script>
-let start=0,elapsed=0,raf,running=false;
-const timeEl=document.getElementById('time');
-function pad(n){return n.toString().padStart(2,'0');}
-function format(ms){
-  const m=Math.floor(ms/60000);
-  const s=Math.floor(ms/1000)%60;
-  const ms2=Math.floor(ms%1000/10);
-  return pad(m)+':'+pad(s)+'.'+pad(ms2);
-}
-function update(){
-  const diff=performance.now()-start+elapsed;
-  timeEl.textContent=format(diff);
-  raf=requestAnimationFrame(update);
-}
-const startBtn=document.getElementById('startBtn');
-startBtn.addEventListener('click',()=>{
-  if(!running){
-    start=performance.now();
-    raf=requestAnimationFrame(update);
-    startBtn.innerHTML='<span class="material-symbols-rounded">pause</span>';
-  }else{
-    elapsed+=performance.now()-start;
-    cancelAnimationFrame(raf);
-    startBtn.innerHTML='<span class="material-symbols-rounded">play_arrow</span>';
-  }
-  running=!running;
-});
-
-document.getElementById('resetBtn').addEventListener('click',()=>{
-  start=performance.now();
-  elapsed=0;
-  timeEl.textContent='00:00.00';
-  if(!running){cancelAnimationFrame(raf);}
-});
-
-const searchOverlay=document.getElementById('searchOverlay');
-document.getElementById('searchBtn').addEventListener('click',()=>searchOverlay.classList.add('active'));
-document.getElementById('closeSearch').addEventListener('click',()=>searchOverlay.classList.remove('active'));
+</section>
+<section id="searchOverlay">
+  <input id="searchBox" type="search" placeholder="">
+  <button id="closeSearch" aria-label="Close"><span class="material-symbols-rounded">close</span></button>
+</section>
+<script type="module">
+const nf=new Intl.NumberFormat(undefined,{minimumIntegerDigits:2,useGrouping:false});
+const state={start:0,elapsed:0,running:false,laps:[],theme:'light'};
+const els={time:document.getElementById('time'),laps:document.getElementById('laps'),start:document.getElementById('start'),lap:document.getElementById('lap'),search:document.getElementById('search'),overlay:document.getElementById('searchOverlay'),closeSearch:document.getElementById('closeSearch'),theme:document.getElementById('theme'),undo:document.getElementById('undo'),live:document.getElementById('live'),confirm:document.getElementById('confirm'),confirmYes:document.getElementById('confirmYes'),confirmNo:document.getElementById('confirmNo')};
+let lapNodes=[],undoTimer,hiddenAt,undoCache=null;
+function vibrate(){if(navigator.vibrate)navigator.vibrate(5);}
+function formatTime(ms){const d=Math.floor(ms/86400000);const h=Math.floor(ms/3600000)%24;const m=Math.floor(ms/60000)%60;const s=Math.floor(ms/1000)%60;const hs=Math.floor(ms%1000/10);return (d?nf.format(d)+':':'')+nf.format(h)+':'+nf.format(m)+':'+nf.format(s)+'.'+nf.format(hs);} 
+function renderLaps(){for(let i=0;i<state.laps.length;i++){let li=lapNodes[i];if(!li){li=document.createElement('li');lapNodes[i]=li;els.laps.appendChild(li);}const lap=state.laps[i];li.innerHTML='<span>'+nf.format(i+1)+'</span><span>'+formatTime(lap.lap)+'</span><span>'+formatTime(lap.total)+'</span>';}
+while(lapNodes.length>state.laps.length){const li=lapNodes.pop();li.remove();}}
+function renderTime(){const now=state.running?performance.now()-state.start+state.elapsed:state.elapsed;els.time.textContent=formatTime(now);}
+function renderTheme(){if(state.theme==='high')document.body.setAttribute('data-contrast','high');else document.body.removeAttribute('data-contrast');}
+function render(){renderTime();renderLaps();renderTheme();}
+function saveState(){const total=state.elapsed+(state.running?performance.now()-state.start:0);localStorage.setItem('stopwatch',JSON.stringify({elapsed:total,running:state.running,laps:state.laps,theme:state.theme,timestamp:Date.now()}));}
+function restoreState(){const s=localStorage.getItem('stopwatch');if(!s)return;const data=JSON.parse(s);state.elapsed=data.elapsed||0;state.laps=data.laps||[];state.theme=data.theme||'light';if(data.running){state.elapsed+=Date.now()-data.timestamp;state.start=performance.now();state.running=true;els.start.firstElementChild.textContent='pause';tick();}}
+function tick(){if(!state.running)return;renderTime();requestAnimationFrame(tick);} 
+function toggleStart(){if(state.running){state.elapsed+=performance.now()-state.start;state.running=false;els.start.firstElementChild.textContent='play_arrow';}else{state.start=performance.now();state.running=true;els.start.firstElementChild.textContent='pause';tick();}saveState();vibrate();}
+function addLap(){const current=state.running?performance.now()-state.start+state.elapsed:state.elapsed;const prev=state.laps.length?state.laps[state.laps.length-1].total:0;const lapTime=current-prev;state.laps.push({lap:lapTime,total:current});renderLaps();els.live.textContent='Lap '+state.laps.length+' '+formatTime(lapTime);saveState();vibrate();}
+function openSearch(){els.overlay.classList.add('active');}
+function closeSearch(){els.overlay.classList.remove('active');}
+function toggleTheme(){state.theme=state.theme==='high'?'light':'high';renderTheme();saveState();}
+function snapshot(){return{elapsed:state.elapsed+(state.running?performance.now()-state.start:0),running:state.running,laps:JSON.parse(JSON.stringify(state.laps)),theme:state.theme};}
+function reset(){undoCache=snapshot();state.elapsed=0;state.laps=[];state.running=false;els.start.firstElementChild.textContent='play_arrow';render();saveState();vibrate();showUndo();}
+function showUndo(){els.undo.textContent='';const label=document.createElement('span');label.textContent='Reset';const btn=document.createElement('button');btn.textContent='Undo';btn.className='pill';btn.style.height='32px';btn.style.padding='0 16px';btn.style.fontSize='14px';els.undo.append(label,btn);els.undo.classList.add('show');btn.onclick=undo;clearTimeout(undoTimer);undoTimer=setTimeout(hideUndo,5000);} 
+function hideUndo(){els.undo.classList.remove('show');}
+function undo(){if(!undoCache)return;Object.assign(state,{elapsed:undoCache.elapsed,laps:undoCache.laps,theme:undoCache.theme,running:undoCache.running});if(state.running){state.start=performance.now();els.start.firstElementChild.textContent='pause';tick();}else{els.start.firstElementChild.textContent='play_arrow';}undoCache=null;render();saveState();hideUndo();}
+function openConfirm(){els.confirm.classList.add('active');}
+function closeConfirm(){els.confirm.classList.remove('active');}
+document.addEventListener('visibilitychange',()=>{if(document.hidden){hiddenAt=performance.now();}else if(state.running&&hiddenAt){state.start+=performance.now()-hiddenAt;}});
+els.start.addEventListener('click',toggleStart);
+els.lap.addEventListener('click',addLap);
+els.search.addEventListener('click',openSearch);
+els.closeSearch.addEventListener('click',closeSearch);
+els.theme.addEventListener('click',toggleTheme);
+els.confirmNo.addEventListener('click',closeConfirm);
+els.confirmYes.addEventListener('click',()=>{closeConfirm();reset();});
+let pressTimer;els.start.addEventListener('pointerdown',e=>{pressTimer=setTimeout(()=>{openConfirm();},600);});els.start.addEventListener('pointerup',e=>{clearTimeout(pressTimer);});els.start.addEventListener('pointerleave',e=>{clearTimeout(pressTimer);});
+let touchX,touchY;document.body.addEventListener('touchstart',e=>{touchX=e.touches[0].clientX;touchY=e.touches[0].clientY;});document.body.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-touchX;const dy=Math.abs(e.changedTouches[0].clientY-touchY);if(dx>60&&dy<30)addLap();});
+document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();toggleStart();}if(e.key==='l'){addLap();}if(e.key==='r'){openConfirm();}});
+window.__stopwatch={debug:()=>state};
+window.runSmokeTest=async function(){toggleStart();await new Promise(r=>setTimeout(r,60));addLap();await new Promise(r=>setTimeout(r,60));toggleStart();await new Promise(r=>setTimeout(r,60));toggleStart();await new Promise(r=>setTimeout(r,60));reset();};
+restoreState();render();
 </script>
 </body>
 </html>

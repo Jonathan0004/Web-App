@@ -24,6 +24,11 @@ main{flex:1;overflow:auto;padding:16px;padding-bottom:calc(112px + env(safe-area
   #search.bounce{animation:float 3s ease-in-out infinite,bounce .3s;}
   @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
   @keyframes bounce{0%{transform:translateY(0);}30%{transform:translateY(-5px);}50%{transform:translateY(0);}70%{transform:translateY(-2px);}100%{transform:translateY(0);}}
+#lists{flex:1;max-width:160px;border:none;border-radius:22px;padding:0 16px;font-size:16px;background:rgba(255,255,255,0.6);backdrop-filter:blur(10px);transition:backdrop-filter .3s;box-shadow:0 4px 12px rgba(0,0,0,0.1);animation:float 3s ease-in-out infinite;}
+#lists:focus{outline:none;backdrop-filter:blur(12px);}
+#new-list{width:44px;border:none;border-radius:22px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.6);backdrop-filter:blur(10px);color:#007aff;transition:backdrop-filter .3s;box-shadow:0 4px 12px rgba(0,0,0,0.1);animation:float 3s ease-in-out infinite;}
+#new-list:hover{backdrop-filter:blur(12px);}
+#new-list.bounce{animation:float 3s ease-in-out infinite,bounce .3s;}
 #add{width:44px;border:none;border-radius:22px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.6);backdrop-filter:blur(10px);color:#007aff;transition:backdrop-filter .3s;box-shadow:0 4px 12px rgba(0,0,0,0.1);animation:float 3s ease-in-out infinite;}
 #add:hover{backdrop-filter:blur(12px);}
 #add.bounce{animation:float 3s ease-in-out infinite,bounce .3s;}
@@ -44,6 +49,8 @@ body.composer-open main,body.composer-open .toolbar{filter:blur(10px);}
 <body>
 <main id="list"></main>
 <nav class="toolbar">
+  <select id="lists"></select>
+  <button id="new-list" aria-label="New list"><span class="material-symbols-rounded">playlist_add</span></button>
   <input id="search" type="search" placeholder="Search" autocomplete="off">
   <button id="add" aria-label="Add"><span class="material-symbols-rounded">add</span></button>
 </nav>
@@ -61,22 +68,31 @@ body.composer-open main,body.composer-open .toolbar{filter:blur(10px);}
 const list=document.getElementById('list');
 const search=document.getElementById('search');
 const add=document.getElementById('add');
+const listsSelect=document.getElementById('lists');
+const newList=document.getElementById('new-list');
 const composer=document.getElementById('composer');
 const text=document.getElementById('text');
 const saveBtn=document.getElementById('save');
 const cancelBtn=document.getElementById('cancel');
 const sheet=document.querySelector('.sheet');
 if(window.visualViewport){const vv=window.visualViewport;const adjust=()=>{const offset=window.innerHeight-vv.height-vv.offsetTop;sheet.style.marginBottom=offset>0?offset+'px':'';};vv.addEventListener('resize',adjust);text.addEventListener('focus',adjust);text.addEventListener('blur',()=>{sheet.style.marginBottom='';});}
-let notes=JSON.parse(localStorage.getItem('notes')||'[]');
-function save(){localStorage.setItem('notes',JSON.stringify(notes));}
-function render(){list.innerHTML='';notes.forEach((t,i)=>{const n=document.createElement('div');n.className='note';n.innerHTML='<p>'+t+'</p><button class="delete" aria-label="Delete"><span class="material-symbols-rounded">close</span></button>';n.querySelector('.delete').onclick=()=>{n.classList.add('hide');n.addEventListener('transitionend',e=>{if(e.propertyName==='opacity'){notes.splice(i,1);save();render();}}, {once:true});};list.appendChild(n);requestAnimationFrame(()=>n.classList.add('show'));});}
+let lists=JSON.parse(localStorage.getItem('lists')||'[]');
+if(!lists.length){lists=[{name:'Notes',notes:[]}];}
+let currentList=0;
+function save(){localStorage.setItem('lists',JSON.stringify(lists));}
+function renderLists(){listsSelect.innerHTML='';lists.forEach((l,i)=>{const opt=document.createElement('option');opt.value=i;opt.textContent=l.name;listsSelect.appendChild(opt);});listsSelect.selectedIndex=currentList;}
+function renderNotes(){list.innerHTML='';lists[currentList].notes.forEach((t,i)=>{const n=document.createElement('div');n.className='note';n.innerHTML='<p>'+t+'</p><button class="delete" aria-label="Delete"><span class="material-symbols-rounded">close</span></button>';n.querySelector('.delete').onclick=()=>{n.classList.add('hide');n.addEventListener('transitionend',e=>{if(e.propertyName==='opacity'){lists[currentList].notes.splice(i,1);save();renderNotes();}}, {once:true});};list.appendChild(n);requestAnimationFrame(()=>n.classList.add('show'));});}
+function render(){renderLists();renderNotes();}
 add.onclick=()=>{document.body.classList.add('composer-open');composer.classList.add('show');text.focus();add.classList.add('bounce');};
 cancelBtn.onclick=()=>{document.body.classList.remove('composer-open');composer.classList.remove('show');text.value='';};
-saveBtn.onclick=()=>{const t=text.value.trim();if(t){notes.unshift(t);save();render();}document.body.classList.remove('composer-open');composer.classList.remove('show');text.value='';};
+saveBtn.onclick=()=>{const t=text.value.trim();if(t){lists[currentList].notes.unshift(t);save();renderNotes();}document.body.classList.remove('composer-open');composer.classList.remove('show');text.value='';};
+listsSelect.onchange=e=>{currentList=parseInt(e.target.value,10);search.value='';renderNotes();};
+newList.onclick=()=>{const name=prompt('List name');if(name){lists.push({name,notes:[]});currentList=lists.length-1;save();render();newList.classList.add('bounce');}};
   search.oninput=e=>{const q=e.target.value.toLowerCase();[...list.children].forEach(n=>{const match=n.textContent.toLowerCase().includes(q);n.style.display=match?'':'none';});};
   search.addEventListener('click',()=>{search.classList.add('bounce');});
   search.addEventListener('animationend',e=>{if(e.animationName==='bounce')search.classList.remove('bounce');});
   add.addEventListener('animationend',e=>{if(e.animationName==='bounce')add.classList.remove('bounce');});
+  newList.addEventListener('animationend',e=>{if(e.animationName==='bounce')newList.classList.remove('bounce');});
   render();
 </script>
 </body>

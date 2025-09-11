@@ -2,36 +2,31 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Detector</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,700,0,0&display=swap" rel="stylesheet" />
 <style>
-  html,body{margin:0;padding:0;width:100%;height:100%;background:#F9F5EC;font-family:'Inter',sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased;}
-   #app{position:relative;width:100%;height:100%;display:flex;justify-content:center;align-items:center;}
-   #frame{position:relative;overflow:hidden;border-radius:20px;width:90vmin;height:90vmin;max-width:100%;max-height:100%;}
-   video,canvas{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;}
-   canvas{transition:opacity .4s ease;}
-   #controls{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom)+16px);transform:translate(-50%,20px);display:flex;gap:12px;flex-wrap:wrap;opacity:0;animation:rise .6s ease forwards;z-index:10;}
-   .pill,.pill-range{display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:999px;background:rgba(255,255,255,.6);backdrop-filter:blur(10px);color:#333;font-size:16px;font-weight:500;}
-   .pill-range input{width:100px;accent-color:#4A5568;}
+  html,body{margin:0;padding:0;background:#F9F5EC;font-family:'Inter',sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased;}
+  #app{position:relative;width:100%;height:calc(var(--vh,1vh)*100);}
+  video,canvas{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;}
+  canvas{transition:opacity .4s ease;}
+  #controls{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom)+16px);transform:translate(-50%,20px);display:flex;gap:12px;opacity:0;animation:rise .6s ease forwards;z-index:10;}
+  .pill{display:flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;background:rgba(255,255,255,.6);backdrop-filter:blur(10px);color:#333;font-size:16px;font-weight:500;}
   .material-symbols-rounded{font-variation-settings:'FILL' 0,'wght' 700,'GRAD' 0,'opsz' 24;font-size:24px;line-height:24px;}
   @keyframes rise{to{opacity:1;transform:translate(-50%,0);}}
 </style>
 </head>
 <body>
  <div id="app">
-   <div id="frame">
-     <video id="video" autoplay muted playsinline></video>
-     <canvas id="canvas"></canvas>
-   </div>
+   <video id="video" autoplay muted playsinline></video>
+   <canvas id="canvas"></canvas>
  </div>
  <div id="controls">
    <button id="toggle" class="pill"><span class="material-symbols-rounded">search</span><span id="label">Scan</span></button>
    <button id="flip" class="pill"><span class="material-symbols-rounded">cameraswitch</span><span>Flip</span></button>
-   <label class="pill-range">Conf.<input id="threshold" type="range" min="0" max="100" value="50"></label>
  </div>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
@@ -41,10 +36,13 @@ const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
 const toggle=document.getElementById('toggle');
 const flip=document.getElementById('flip');
-const thresholdInput=document.getElementById('threshold');
 const icon=toggle.querySelector('span.material-symbols-rounded');
 const label=document.getElementById('label');
 let model,stream,streaming=false,detecting=true,useFront=false,threshold=0.5,prevBoxes=[];
+
+function setVh(){document.documentElement.style.setProperty('--vh',`${window.innerHeight*0.01}px`);} 
+window.addEventListener('resize',setVh);
+setVh();
 
 async function initCamera(){
   if(stream){stream.getTracks().forEach(t=>t.stop());}
@@ -70,6 +68,8 @@ async function loop(){
       const preds=smoothBoxes(raw.filter(p=>p.score>=threshold));
       ctx.font='12px Inter';
       ctx.textBaseline='top';
+      ctx.lineJoin='round';
+      ctx.lineCap='round';
       preds.forEach(p=>{
         const [x,y,w,h]=p.bbox;
         ctx.strokeStyle='#4A5568';
@@ -103,10 +103,6 @@ toggle.addEventListener('click',()=>{
 flip.addEventListener('click',()=>{
   useFront=!useFront;
   initCamera();
-});
-
-thresholdInput.addEventListener('input',e=>{
-  threshold=e.target.value/100;
 });
 
 function smoothBoxes(preds){

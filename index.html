@@ -11,12 +11,14 @@
   <style>
     body{margin:0;background:#F9F5EC;font-family:'DM Sans',sans-serif;overflow:hidden;}
     video,canvas{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;transform-origin:top left;}
-    #settingsBtn{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);width:56px;height:56px;border-radius:28px;backdrop-filter:blur(12px);background:rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:transform .4s ease,opacity .4s ease;}
-    #settingsBtn.show{transform:translate(-50%,0);opacity:1;}
-    #settingsBtn:active{transform:translate(-50%,0) scale(.95);opacity:.8;}
-    #settingsBtn span{font-size:32px;line-height:0;}
     canvas{pointer-events:none;}
-    #settingsPanel{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);padding:20px 24px;backdrop-filter:blur(16px);background:rgba(255,255,255,0.9);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.1);display:none;flex-direction:column;gap:12px;min-width:200px;}
+
+    #settingsBtn{position:fixed;right:24px;bottom:24px;transform:translateY(20px);width:56px;height:56px;border-radius:28px;backdrop-filter:blur(12px);background:rgba(255,255,255,.8);box-shadow:0 2px 12px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:transform .4s ease,opacity .4s ease;}
+    #settingsBtn.show{transform:translateY(0);opacity:1;}
+    #settingsBtn:active{transform:translateY(0) scale(.95);opacity:.9;}
+    #settingsBtn span{font-size:32px;line-height:0;}
+
+    #settingsPanel{position:fixed;right:24px;bottom:90px;padding:20px;backdrop-filter:blur(16px);background:rgba(255,255,255,0.95);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.1);display:none;flex-direction:column;gap:12px;min-width:220px;}
     #settingsPanel.show{display:flex;}
     #settingsPanel label{display:flex;align-items:center;gap:8px;font-size:16px;justify-content:space-between;}
     #settingsPanel button{padding:8px 12px;border:none;border-radius:8px;background:#fff;cursor:pointer;}
@@ -29,13 +31,16 @@
   <div id="settingsBtn"><span class="material-symbols-rounded">settings</span></div>
   <div id="settingsPanel">
     <label><span>Auto Zoom</span><input type="checkbox" id="zoomMode" checked></label>
-    <label><span>Show Box</span><input type="checkbox" id="showBox" checked></label>
+    <label><span>Show Head Box</span><input type="checkbox" id="showBox" checked></label>
     <label><span>Smoothing</span><input type="range" id="smoothFactor" min="0" max="0.5" step="0.01" value="0.2"></label>
+    <label><span>Zoom Speed</span><input type="range" id="zoomSpeed" min="0.05" max="0.3" step="0.01" value="0.15"></label>
+    <label><span>Margin</span><input type="range" id="margin" min="1" max="2.5" step="0.1" value="1.5"></label>
+    <label><span>Box Color</span><input type="color" id="boxColor" value="#ffffff"></label>
     <button id="resetView">Reset View</button>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js"></script>
-    <script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+  <script>
       const video=document.getElementById('video');
       const canvas=document.getElementById('canvas');
       const ctx=canvas.getContext('2d');
@@ -45,25 +50,31 @@
       const zoomModeEl=document.getElementById('zoomMode');
       const showBoxEl=document.getElementById('showBox');
       const smoothFactorEl=document.getElementById('smoothFactor');
+      const zoomSpeedEl=document.getElementById('zoomSpeed');
+      const marginEl=document.getElementById('margin');
+      const boxColorEl=document.getElementById('boxColor');
       const resetViewBtn=document.getElementById('resetView');
-      let model,zoomMode=true,showBox=true,smoothFactor=parseFloat(smoothFactorEl.value);
+      let detector,zoomMode=true,showBox=true,smoothFactor=parseFloat(smoothFactorEl.value);
+      let zoomSpeed=parseFloat(zoomSpeedEl.value),marginFactor=parseFloat(marginEl.value),boxColor=boxColorEl.value;
       let smoothBox=null,currentScale=1,currentX=0,currentY=0;
 
-    async function setupCamera(){
-      const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-      video.srcObject=stream;
-      await new Promise(r=>video.onloadedmetadata=r);
-      canvas.width=video.videoWidth;
-      canvas.height=video.videoHeight;
-    }
-    async function load(){
-      model=await blazeface.load();
-    }
-    function roundRect(x,y,w,h,r){
-      ctx.beginPath();
-      ctx.moveTo(x+r,y);
-      ctx.lineTo(x+w-r,y);
-      ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+async function setupCamera(){
+  const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+  video.srcObject=stream;
+  await new Promise(r=>video.onloadedmetadata=r);
+  canvas.width=video.videoWidth;
+  canvas.height=video.videoHeight;
+}
+async function load(){
+  const model=poseDetection.SupportedModels.MoveNet;
+  const detectorConfig={modelType:poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING};
+  detector=await poseDetection.createDetector(model,detectorConfig);
+}
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
       ctx.lineTo(x+w,y+h-r);
       ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
       ctx.lineTo(x+r,y+h);
@@ -72,78 +83,87 @@
       ctx.quadraticCurveTo(x,y,x+r,y);
       ctx.closePath();
     }
-    function getSmoothBox(box){
-      if(!smoothBox) smoothBox=box.slice();
-      else{
-        const alpha=smoothFactor;
-        for(let i=0;i<4;i++) smoothBox[i]+=alpha*(box[i]-smoothBox[i]);
-      }
-      return smoothBox;
-    }
-    async function loop(){
-        const preds=await model.estimateFaces(video,false);
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        if(preds.length){
-          const face=preds[0];
-          const [x1,y1]=face.topLeft;
-          const [x2,y2]=face.bottomRight;
-          const box=getSmoothBox([x1,y1,x2-x1,y2-y1]);
-          if(zoomMode){
-            autoZoom(box);
-            if(showBox) drawBox(box);
-          }else{
-            applyTransform(1,0,0);
-            if(showBox) drawBox(box);
-          }
+function getSmoothBox(box){
+  if(!smoothBox) smoothBox=box.slice();
+  else{
+    const alpha=smoothFactor;
+    for(let i=0;i<4;i++) smoothBox[i]+=alpha*(box[i]-smoothBox[i]);
+  }
+  return smoothBox;
+}
+async function loop(){
+    const poses=await detector.estimatePoses(video);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(poses.length){
+      const keypoints=poses[0].keypoints;
+      const headIdx=[0,1,2,3,4];
+      const pts=headIdx.map(i=>keypoints[i]).filter(p=>p&&p.score>0.3);
+      if(pts.length){
+        const xs=pts.map(p=>p.x);
+        const ys=pts.map(p=>p.y);
+        const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+        const box=getSmoothBox([minX,minY,maxX-minX,maxY-minY]);
+        if(zoomMode){
+          autoZoom(box);
+          if(showBox) drawBox(box);
         }else{
           applyTransform(1,0,0);
-          smoothBox=null;
-          currentScale=1;currentX=0;currentY=0;
+          if(showBox) drawBox(box);
         }
-        requestAnimationFrame(loop);
       }
-      settingsBtn.addEventListener('click',()=>settingsPanel.classList.toggle('show'));
-      zoomModeEl.addEventListener('change',e=>{
-        zoomMode=e.target.checked;
+    }else{
+      applyTransform(1,0,0);
+      smoothBox=null;
+      currentScale=1;currentX=0;currentY=0;
+    }
+    requestAnimationFrame(loop);
+  }
+  settingsBtn.addEventListener('click',()=>settingsPanel.classList.toggle('show'));
+  zoomModeEl.addEventListener('change',e=>{
+    zoomMode=e.target.checked;
         if(!zoomMode){
           applyTransform(1,0,0);
           currentScale=1;currentX=0;currentY=0;
         }
       });
-      showBoxEl.addEventListener('change',e=>{showBox=e.target.checked;});
-      smoothFactorEl.addEventListener('input',e=>{smoothFactor=parseFloat(e.target.value);});
-      resetViewBtn.addEventListener('click',()=>{
-        applyTransform(1,0,0);
-        currentScale=1;currentX=0;currentY=0;smoothBox=null;
-      });
-    function applyTransform(scale,x,y){
-      const t=`translate(${x}px,${y}px) scale(${scale})`;
-      video.style.transform=canvas.style.transform=t;
-    }
-      function autoZoom(box){
-        let [x,y,w,h]=box;
-        const margin=1.5;
-        const size=Math.max(w,h)*margin;
-        const centerX=x+w/2,centerY=y+h/2;
-        x=centerX-size/2;
-        y=centerY-size/2;
-        w=size;h=size;
-        const scale=Math.min(canvas.width/w,canvas.height/h);
-        const offsetX=-x*scale+(canvas.width-w*scale)/2;
-        const offsetY=-y*scale+(canvas.height-h*scale)/2;
-        const alpha=.15;
-        currentScale+=alpha*(scale-currentScale);
-        currentX+=alpha*(offsetX-currentX);
-        currentY+=alpha*(offsetY-currentY);
-        applyTransform(currentScale,currentX,currentY);
-      }
-      function drawBox(box){
-        ctx.lineWidth=2;
-        ctx.strokeStyle='rgba(255,255,255,0.7)';
-        roundRect(box[0],box[1],box[2],box[3],12);
-        ctx.stroke();
-      }
-      (async()=>{await setupCamera();await load();loop();})();
+  showBoxEl.addEventListener('change',e=>{showBox=e.target.checked;});
+  smoothFactorEl.addEventListener('input',e=>{smoothFactor=parseFloat(e.target.value);});
+  zoomSpeedEl.addEventListener('input',e=>{zoomSpeed=parseFloat(e.target.value);});
+  marginEl.addEventListener('input',e=>{marginFactor=parseFloat(e.target.value);});
+  boxColorEl.addEventListener('input',e=>{boxColor=e.target.value;});
+  resetViewBtn.addEventListener('click',()=>{
+    applyTransform(1,0,0);
+    currentScale=1;currentX=0;currentY=0;smoothBox=null;
+  });
+function applyTransform(scale,x,y){
+  const t=`translate(${x}px,${y}px) scale(${scale})`;
+  video.style.transform=canvas.style.transform=t;
+}
+function autoZoom(box){
+  let [x,y,w,h]=box;
+  const size=Math.max(w,h)*marginFactor;
+  const centerX=x+w/2,centerY=y+h/2;
+  x=centerX-size/2;
+  y=centerY-size/2;
+  w=size;h=size;
+  const scale=Math.min(canvas.width/w,canvas.height/h);
+  const offsetX=-x*scale+(canvas.width-w*scale)/2;
+  const offsetY=-y*scale+(canvas.height-h*scale)/2;
+  currentScale+=zoomSpeed*(scale-currentScale);
+  currentX+=zoomSpeed*(offsetX-currentX);
+  currentY+=zoomSpeed*(offsetY-currentY);
+  applyTransform(currentScale,currentX,currentY);
+}
+function drawBox(box){
+  ctx.save();
+  ctx.lineWidth=2;
+  ctx.strokeStyle=boxColor;
+  ctx.globalAlpha=0.7;
+  roundRect(box[0],box[1],box[2],box[3],12);
+  ctx.stroke();
+  ctx.restore();
+}
+  (async()=>{await setupCamera();await load();loop();})();
   </script>
 </body>
 </html>

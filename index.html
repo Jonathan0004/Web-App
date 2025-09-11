@@ -91,12 +91,12 @@ img#photo.show{opacity:1;transform:scale(1);}
  border-radius:2px;
  background:#ccc;
  overflow:hidden;
+ color:#ccc;
+ position:relative;
 }
-.bar::before{
- content:'';
- display:block;
- height:100%;
- width:100%;
+.bar .progress{
+ position:absolute;
+ inset:0;
  background:currentColor;
  transform:translateX(-100%);
 }
@@ -106,7 +106,7 @@ img#photo.show{opacity:1;transform:scale(1);}
 </head>
 <body>
 <img id="photo" alt=""/>
-<div id="loader"><div class="bar"></div></div>
+<div id="loader"><div class="bar"><div class="progress"></div></div></div>
 <div class="bottom">
   <div class="pill">
     <span class="material-symbols-rounded search">search</span>
@@ -118,6 +118,7 @@ img#photo.show{opacity:1;transform:scale(1);}
 const photo=document.getElementById('photo');
 const loader=document.getElementById('loader');
 const bar=loader.querySelector('.bar');
+const progress=bar.querySelector('.progress');
 const input=document.getElementById('q');
 const clearBtn=document.querySelector('.clear');
 const searchIcon=document.querySelector('.search');
@@ -130,9 +131,9 @@ function avgColor(img){
  const n=d.length/4;return`rgb(${r/n|0},${g/n|0},${b/n|0})`;
 }
 function runBar(){
- bar.style.animation='none';
- void bar.offsetWidth; // restart
- bar.style.animation='slide .7s forwards';
+ progress.style.animation='none';
+ void progress.offsetWidth; // restart
+ progress.style.animation='slide .7s forwards';
 }
 function search(q){
  if(!q.trim())return;
@@ -143,14 +144,16 @@ function search(q){
  img.crossOrigin='anonymous';
  img.src=`https://source.unsplash.com/1600x900/?${encodeURIComponent(q)}`;
  img.onload=()=>{
-   const color=avgColor(img);
+   let color='#ccc';
+   try{color=avgColor(img);}catch(e){console.warn('avgColor failed',e);}
    bar.style.color=color;
-   loader.style.background=color+'20';
+   loader.style.background=color.replace('rgb','rgba').replace(')',',0.2)');
    photo.classList.remove('show');
    photo.src=img.src;
    runBar();
    setTimeout(()=>{loader.classList.remove('show');photo.classList.add('show');},700);
  };
+ img.onerror=()=>{loader.classList.remove('show');};
 }
 input.addEventListener('keydown',e=>{if(e.key==='Enter')search(input.value);});
 searchIcon.addEventListener('click',()=>search(input.value));

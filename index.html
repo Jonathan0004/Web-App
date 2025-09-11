@@ -119,9 +119,17 @@ async function loop(){
     if(pts.length>=2){
       const xs=pts.map(p=>p.x);
       const ys=pts.map(p=>p.y);
-      let minX=Math.min(...xs),maxX=Math.max(...xs);
-      let width=maxX-minX;
-      let centerX=minX+width/2;
+      const nose=keypoints[0];
+      let centerX;
+      if(nose&&nose.score>0.3){
+        centerX=nose.x;
+      }else{
+        centerX=xs.reduce((a,b)=>a+b,0)/xs.length;
+      }
+      const maxLeft=centerX-Math.min(...xs);
+      const maxRight=Math.max(...xs)-centerX;
+      let width=Math.max(maxLeft,maxRight)*2;
+      if(width<40) width=40;
       let topY=Math.min(...ys)-width*0.6;
       let height=width*1.6;
       const box=getSmoothBox([centerX-width/2,topY,width,height]);

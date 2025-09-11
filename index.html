@@ -16,13 +16,26 @@
     #settingsBtn{position:fixed;right:24px;bottom:24px;transform:translateY(20px);width:56px;height:56px;border-radius:28px;backdrop-filter:blur(12px);background:rgba(255,255,255,.8);box-shadow:0 2px 12px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:transform .4s ease,opacity .4s ease;}
     #settingsBtn.show{transform:translateY(0);opacity:1;}
     #settingsBtn:active{transform:translateY(0) scale(.95);opacity:.9;}
-    #settingsBtn span{font-size:32px;line-height:0;}
+    #settingsBtn span{font-size:32px;line-height:0;transition:transform .6s ease;}
+    #settingsBtn.spin span{animation:spin .6s ease;}
+    @keyframes spin{0%{transform:rotate(0);}50%{transform:rotate(180deg);}100%{transform:rotate(0);}}
 
-    #settingsPanel{position:fixed;right:24px;bottom:90px;padding:20px;backdrop-filter:blur(16px);background:rgba(255,255,255,0.95);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.1);display:none;flex-direction:column;gap:12px;min-width:220px;}
-    #settingsPanel.show{display:flex;}
-    #settingsPanel label{display:flex;align-items:center;gap:8px;font-size:16px;justify-content:space-between;}
-    #settingsPanel button{padding:8px 12px;border:none;border-radius:8px;background:#fff;cursor:pointer;}
-    #settingsPanel button:active{transform:scale(.97);}
+    #settingsPanel{position:fixed;right:24px;bottom:90px;padding:20px;backdrop-filter:blur(16px);background:rgba(255,255,255,0.95);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.1);flex-direction:column;gap:12px;min-width:220px;opacity:0;transform:translateY(10px) scale(.95);pointer-events:none;transition:opacity .4s ease,transform .4s ease;display:flex;}
+    #settingsPanel.show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
+    #settingsPanel .setting{display:flex;align-items:center;gap:8px;justify-content:space-between;font-size:16px;}
+    .toggle{width:40px;height:24px;border-radius:12px;background:#bbb;position:relative;cursor:pointer;transition:background .3s;}
+    .toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:10px;background:#fff;transition:transform .3s;}
+    .toggle.on{background:#4CAF50;}
+    .toggle.on::after{transform:translateX(16px);}
+    .slider{position:relative;width:100px;height:4px;background:#ddd;border-radius:2px;cursor:pointer;}
+    .slider .thumb{position:absolute;top:50%;width:12px;height:12px;background:#fff;border-radius:6px;box-shadow:0 0 2px rgba(0,0,0,0.6);transform:translate(-50%,-50%);}
+    .btn{padding:8px 12px;border-radius:8px;background:#fff;cursor:pointer;text-align:center;}
+    .btn:active{transform:scale(.97);}
+    .color-picker{position:relative;width:24px;height:24px;cursor:pointer;}
+    .color-picker .swatch{width:100%;height:100%;border-radius:4px;border:1px solid #ccc;}
+    .color-picker .palette{display:none;position:absolute;bottom:110%;left:0;background:#fff;padding:4px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.2);gap:4px;}
+    .color-picker.open .palette{display:flex;}
+    .color-picker .palette div{width:20px;height:20px;border-radius:4px;cursor:pointer;}
   </style>
 </head>
 <body>
@@ -30,33 +43,37 @@
   <canvas id="canvas"></canvas>
   <div id="settingsBtn"><span class="material-symbols-rounded">settings</span></div>
   <div id="settingsPanel">
-    <label><span>Auto Zoom</span><input type="checkbox" id="zoomMode" checked></label>
-    <label><span>Show Head Box</span><input type="checkbox" id="showBox" checked></label>
-    <label><span>Smoothing</span><input type="range" id="smoothFactor" min="0" max="0.5" step="0.01" value="0.2"></label>
-    <label><span>Zoom Speed</span><input type="range" id="zoomSpeed" min="0.05" max="0.3" step="0.01" value="0.15"></label>
-    <label><span>Margin</span><input type="range" id="margin" min="1" max="2.5" step="0.1" value="1.5"></label>
-    <label><span>Box Color</span><input type="color" id="boxColor" value="#ffffff"></label>
-    <button id="resetView">Reset View</button>
+    <div class="setting"><span>Auto Zoom</span><div class="toggle" id="zoomMode"></div></div>
+    <div class="setting"><span>Show Head Box</span><div class="toggle" id="showBox"></div></div>
+    <div class="setting"><span>Smoothing</span><div class="slider" id="smoothFactor"></div></div>
+    <div class="setting"><span>Zoom Speed</span><div class="slider" id="zoomSpeed"></div></div>
+    <div class="setting"><span>Margin</span><div class="slider" id="margin"></div></div>
+    <div class="setting"><span>Box Color</span>
+      <div class="color-picker" id="boxColor">
+        <div class="swatch"></div>
+        <div class="palette">
+          <div data-color="#ffffff" style="background:#ffffff"></div>
+          <div data-color="#ff0000" style="background:#ff0000"></div>
+          <div data-color="#00ff00" style="background:#00ff00"></div>
+          <div data-color="#0000ff" style="background:#0000ff"></div>
+          <div data-color="#ffff00" style="background:#ffff00"></div>
+        </div>
+      </div>
+    </div>
+    <div class="btn" id="resetView">Reset View</div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
   <script>
-      const video=document.getElementById('video');
-      const canvas=document.getElementById('canvas');
-      const ctx=canvas.getContext('2d');
-      const settingsBtn=document.getElementById('settingsBtn');
-      requestAnimationFrame(()=>settingsBtn.classList.add('show'));
-      const settingsPanel=document.getElementById('settingsPanel');
-      const zoomModeEl=document.getElementById('zoomMode');
-      const showBoxEl=document.getElementById('showBox');
-      const smoothFactorEl=document.getElementById('smoothFactor');
-      const zoomSpeedEl=document.getElementById('zoomSpeed');
-      const marginEl=document.getElementById('margin');
-      const boxColorEl=document.getElementById('boxColor');
-      const resetViewBtn=document.getElementById('resetView');
-      let detector,zoomMode=true,showBox=true,smoothFactor=parseFloat(smoothFactorEl.value);
-      let zoomSpeed=parseFloat(zoomSpeedEl.value),marginFactor=parseFloat(marginEl.value),boxColor=boxColorEl.value;
-      let smoothBox=null,currentScale=1,currentX=0,currentY=0;
+    const video=document.getElementById('video');
+    const canvas=document.getElementById('canvas');
+    const ctx=canvas.getContext('2d');
+    const settingsBtn=document.getElementById('settingsBtn');
+    requestAnimationFrame(()=>settingsBtn.classList.add('show'));
+    const settingsPanel=document.getElementById('settingsPanel');
+    let detector,zoomMode=true,showBox=true,smoothFactor=0.2;
+    let zoomSpeed=0.15,marginFactor=1.5,boxColor='#ffffff';
+    let smoothBox=null,currentScale=1,currentX=0,currentY=0,missedFrames=0;
 
 async function setupCamera(){
   const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
@@ -75,14 +92,14 @@ function roundRect(x,y,w,h,r){
   ctx.moveTo(x+r,y);
   ctx.lineTo(x+w-r,y);
   ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-      ctx.lineTo(x+w,y+h-r);
-      ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-      ctx.lineTo(x+r,y+h);
-      ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-      ctx.lineTo(x,y+r);
-      ctx.quadraticCurveTo(x,y,x+r,y);
-      ctx.closePath();
-    }
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
 function getSmoothBox(box){
   if(!smoothBox) smoothBox=box.slice();
   else{
@@ -92,49 +109,45 @@ function getSmoothBox(box){
   return smoothBox;
 }
 async function loop(){
-    const poses=await detector.estimatePoses(video);
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    if(poses.length){
-      const keypoints=poses[0].keypoints;
-      const headIdx=[0,1,2,3,4];
-      const pts=headIdx.map(i=>keypoints[i]).filter(p=>p&&p.score>0.3);
-      if(pts.length){
-        const xs=pts.map(p=>p.x);
-        const ys=pts.map(p=>p.y);
-        const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
-        const box=getSmoothBox([minX,minY,maxX-minX,maxY-minY]);
-        if(zoomMode){
-          autoZoom(box);
-          if(showBox) drawBox(box);
-        }else{
-          applyTransform(1,0,0);
-          if(showBox) drawBox(box);
-        }
+  const poses=await detector.estimatePoses(video);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(poses.length){
+    missedFrames=0;
+    const keypoints=poses[0].keypoints;
+    const headIdx=[0,1,2,3,4];
+    const pts=headIdx.map(i=>keypoints[i]).filter(p=>p&&p.score>0.3);
+    if(pts.length>=2){
+      const xs=pts.map(p=>p.x);
+      const ys=pts.map(p=>p.y);
+      let minX=Math.min(...xs),maxX=Math.max(...xs);
+      let width=maxX-minX;
+      let centerX=minX+width/2;
+      let topY=Math.min(...ys)-width*0.6;
+      let height=width*1.6;
+      const box=getSmoothBox([centerX-width/2,topY,width,height]);
+      if(zoomMode){
+        autoZoom(box);
+        if(showBox) drawBox(box);
+      }else{
+        applyTransform(1,0,0);
+        if(showBox) drawBox(box);
       }
-    }else{
+    }
+  }else{
+    missedFrames++;
+    if(missedFrames>30){
       applyTransform(1,0,0);
       smoothBox=null;
       currentScale=1;currentX=0;currentY=0;
     }
-    requestAnimationFrame(loop);
   }
-  settingsBtn.addEventListener('click',()=>settingsPanel.classList.toggle('show'));
-  zoomModeEl.addEventListener('change',e=>{
-    zoomMode=e.target.checked;
-        if(!zoomMode){
-          applyTransform(1,0,0);
-          currentScale=1;currentX=0;currentY=0;
-        }
-      });
-  showBoxEl.addEventListener('change',e=>{showBox=e.target.checked;});
-  smoothFactorEl.addEventListener('input',e=>{smoothFactor=parseFloat(e.target.value);});
-  zoomSpeedEl.addEventListener('input',e=>{zoomSpeed=parseFloat(e.target.value);});
-  marginEl.addEventListener('input',e=>{marginFactor=parseFloat(e.target.value);});
-  boxColorEl.addEventListener('input',e=>{boxColor=e.target.value;});
-  resetViewBtn.addEventListener('click',()=>{
-    applyTransform(1,0,0);
-    currentScale=1;currentX=0;currentY=0;smoothBox=null;
-  });
+  requestAnimationFrame(loop);
+}
+settingsBtn.addEventListener('click',()=>{
+  settingsBtn.classList.add('spin');
+  setTimeout(()=>settingsBtn.classList.remove('spin'),600);
+  settingsPanel.classList.toggle('show');
+});
 function applyTransform(scale,x,y){
   const t=`translate(${x}px,${y}px) scale(${scale})`;
   video.style.transform=canvas.style.transform=t;
@@ -163,7 +176,60 @@ function drawBox(box){
   ctx.stroke();
   ctx.restore();
 }
-  (async()=>{await setupCamera();await load();loop();})();
+function setupToggle(id,initial,onChange){
+  const el=document.getElementById(id);
+  let val=initial;el.classList.toggle('on',val);
+  el.addEventListener('click',()=>{val=!val;el.classList.toggle('on',val);onChange(val);});
+}
+function createSlider(id,min,max,step,value,onChange){
+  const el=document.getElementById(id);
+  const thumb=document.createElement('div');
+  thumb.className='thumb';
+  el.appendChild(thumb);
+  let val=value;
+  function set(v){
+    v=Math.min(max,Math.max(min,v));
+    v=Math.round(v/step)*step;
+    val=v;onChange(v);
+    const percent=(v-min)/(max-min);
+    thumb.style.left=`${percent*100}%`;
+  }
+  function pointer(e){
+    const rect=el.getBoundingClientRect();
+    const percent=(e.clientX-rect.left)/rect.width;
+    set(min+percent*(max-min));
+  }
+  let drag=false;
+  el.addEventListener('pointerdown',e=>{drag=true;pointer(e);});
+  window.addEventListener('pointermove',e=>{if(drag)pointer(e);});
+  window.addEventListener('pointerup',()=>drag=false);
+  set(value);
+}
+function setupColorPicker(id,initial,onChange){
+  const el=document.getElementById(id);
+  const swatch=el.querySelector('.swatch');
+  swatch.style.background=initial;
+  el.addEventListener('click',e=>{
+    if(e.target.dataset.color){
+      const c=e.target.dataset.color;
+      swatch.style.background=c;
+      onChange(c);
+      el.classList.remove('open');
+    }else{
+      el.classList.toggle('open');
+    }
+    e.stopPropagation();
+  });
+  document.addEventListener('click',()=>el.classList.remove('open'));
+}
+setupToggle('zoomMode',zoomMode,v=>{zoomMode=v;if(!zoomMode){applyTransform(1,0,0);currentScale=1;currentX=0;currentY=0;}});
+setupToggle('showBox',showBox,v=>{showBox=v;});
+createSlider('smoothFactor',0,0.5,0.01,smoothFactor,v=>{smoothFactor=v;});
+createSlider('zoomSpeed',0.05,0.3,0.01,zoomSpeed,v=>{zoomSpeed=v;});
+createSlider('margin',1,2.5,0.1,marginFactor,v=>{marginFactor=v;});
+setupColorPicker('boxColor',boxColor,v=>{boxColor=v;});
+document.getElementById('resetView').addEventListener('click',()=>{applyTransform(1,0,0);currentScale=1;currentX=0;currentY=0;smoothBox=null;});
+(async()=>{await setupCamera();await load();loop();})();
   </script>
 </body>
 </html>

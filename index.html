@@ -91,8 +91,19 @@ const cancelBtn=document.getElementById('cancel');
 const listNameInput=document.getElementById('listName');
 const listSaveBtn=document.getElementById('listSave');
 const listCancelBtn=document.getElementById('listCancel');
-const sheet=document.querySelector('.sheet');
-if(window.visualViewport){const vv=window.visualViewport;const adjust=()=>{const offset=window.innerHeight-vv.height-vv.offsetTop;sheet.style.marginBottom=offset>0?offset+'px':'';};vv.addEventListener('resize',adjust);text.addEventListener('focus',adjust);text.addEventListener('blur',()=>{sheet.style.marginBottom='';});}
+const sheets=document.querySelectorAll('.sheet');
+if(window.visualViewport){
+  const vv=window.visualViewport;
+  const adjust=()=>{
+    const offset=window.innerHeight-vv.height-vv.offsetTop;
+    sheets.forEach(s=>{s.style.marginBottom=offset>0?offset+'px':'';});
+  };
+  vv.addEventListener('resize',adjust);
+  [text,listNameInput].forEach(el=>{
+    el.addEventListener('focus',adjust);
+    el.addEventListener('blur',()=>{sheets.forEach(s=>s.style.marginBottom='');});
+  });
+}
 let lists=JSON.parse(localStorage.getItem('lists')||'[]');
 let currentListId;
 let oldNotes=JSON.parse(localStorage.getItem('notes')||'[]');
@@ -140,6 +151,9 @@ function render(){
       n.dataset.id=id;
       n.innerHTML='<p>'+text+'</p><button class="delete" aria-label="Delete"><span class="material-symbols-rounded">close</span></button>';
       n.querySelector('.delete').onclick=()=>deleteNote(l,n,id);
+      let startX;
+      n.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;});
+      n.addEventListener('touchend',e=>{const endX=e.changedTouches[0].clientX;if(startX-endX>50)deleteNote(l,n,id);});
       notesContainer.appendChild(n);
       requestAnimationFrame(()=>n.classList.add('show'));
     });

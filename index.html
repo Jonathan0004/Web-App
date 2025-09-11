@@ -33,8 +33,8 @@
     .btn:active{transform:scale(.97);}
     .color-picker{position:relative;width:24px;height:24px;cursor:pointer;}
     .color-picker .swatch{width:100%;height:100%;border-radius:4px;border:1px solid #ccc;}
-    .color-picker .palette{display:none;position:absolute;bottom:110%;left:auto;right:0;background:#fff;padding:4px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.2);gap:4px;}
-    .color-picker.open .palette{display:flex;}
+    .color-picker .palette{position:absolute;top:50%;right:100%;transform:translate(-8px,-50%) scale(.8);background:#fff;padding:4px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.2);gap:4px;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:transform .2s ease,opacity .2s ease;}
+    .color-picker.open .palette{opacity:1;transform:translate(-8px,-50%) scale(1);pointer-events:auto;}
     .color-picker .palette div{width:20px;height:20px;border-radius:4px;cursor:pointer;}
   </style>
 </head>

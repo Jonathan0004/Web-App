@@ -36,12 +36,16 @@ main{flex:1;overflow:auto;padding:16px;padding-bottom:calc(112px + env(safe-area
 .material-symbols-rounded{font-variation-settings:'FILL' 1,'wght' 700,'GRAD'0,'opsz'24;font-size:24px;}
 #composer{position:fixed;inset:0;background:rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.3s;}
 #composer.show{opacity:1;pointer-events:auto;}
+#listComposer{position:fixed;inset:0;background:rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.3s;}
+#listComposer.show{opacity:1;pointer-events:auto;}
 body.composer-open main,body.composer-open .toolbar{filter:blur(10px);}
 .sheet{width:90%;max-width:500px;background:var(--bg);border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:16px;transform:translateY(20px);backdrop-filter:blur(0);transition:.3s;}
-#composer.show .sheet{transform:none;backdrop-filter:blur(10px);}
-.sheet textarea{border:none;resize:none;background:transparent;height:120px;font-size:16px;padding:0 12px;opacity:0;transform:translateY(10px);filter:blur(4px);transition:.3s;}
-.sheet textarea:focus{outline:none;}
-#composer.show .sheet textarea{opacity:1;transform:none;filter:blur(0);}
+#composer.show .sheet,#listComposer.show .sheet{transform:none;backdrop-filter:blur(10px);}
+.sheet textarea,.sheet input{border:none;background:transparent;font-size:16px;padding:0 12px;opacity:0;transform:translateY(10px);filter:blur(4px);transition:.3s;}
+.sheet textarea{resize:none;height:120px;}
+.sheet input{height:44px;}
+.sheet textarea:focus,.sheet input:focus{outline:none;}
+#composer.show .sheet textarea,#listComposer.show .sheet input{opacity:1;transform:none;filter:blur(0);}
 .sheet .actions{display:flex;justify-content:flex-end;gap:8px;}
 .sheet .actions button{width:44px;height:44px;border:none;border-radius:22px;background:rgba(255,255,255,0.6);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;color:#007aff;transition:backdrop-filter .3s;}
 .sheet .actions button:hover{backdrop-filter:blur(12px);}
@@ -64,6 +68,15 @@ body.composer-open main,body.composer-open .toolbar{filter:blur(10px);}
     </div>
   </div>
 </div>
+<div id="listComposer">
+  <div class="sheet">
+    <input id="listName" maxlength="100" placeholder="List name">
+    <div class="actions">
+      <button id="listCancel" aria-label="Cancel"><span class="material-symbols-rounded">close</span></button>
+      <button id="listSave" aria-label="Save"><span class="material-symbols-rounded">check</span></button>
+    </div>
+  </div>
+</div>
 <script>
 (function(){function setVH(){document.documentElement.style.setProperty('--vh',window.innerHeight*0.01+'px');}setVH();window.addEventListener('resize',setVH);})();
 const noteList=document.getElementById('list');
@@ -71,9 +84,13 @@ const search=document.getElementById('search');
 const add=document.getElementById('add');
 const addListBtn=document.getElementById('addList');
 const composer=document.getElementById('composer');
+const listComposer=document.getElementById('listComposer');
 const text=document.getElementById('text');
 const saveBtn=document.getElementById('save');
 const cancelBtn=document.getElementById('cancel');
+const listNameInput=document.getElementById('listName');
+const listSaveBtn=document.getElementById('listSave');
+const listCancelBtn=document.getElementById('listCancel');
 const sheet=document.querySelector('.sheet');
 if(window.visualViewport){const vv=window.visualViewport;const adjust=()=>{const offset=window.innerHeight-vv.height-vv.offsetTop;sheet.style.marginBottom=offset>0?offset+'px':'';};vv.addEventListener('resize',adjust);text.addEventListener('focus',adjust);text.addEventListener('blur',()=>{sheet.style.marginBottom='';});}
 let lists=JSON.parse(localStorage.getItem('lists')||'[]');
@@ -132,13 +149,16 @@ function render(){
 }
 function deleteNote(list,n,id){const h=n.offsetHeight;n.style.height=h+'px';requestAnimationFrame(()=>{n.classList.add('hide');n.style.height=0;});n.addEventListener('transitionend',e=>{if(e.propertyName==='height'){const i=list.notes.findIndex(nt=>nt.id===id);if(i>-1){list.notes.splice(i,1);save();}n.remove();}}, {once:true});}
 add.onclick=()=>{document.body.classList.add('composer-open');composer.classList.add('show');text.focus();add.classList.add('bounce');};
-addListBtn.onclick=()=>{const name=prompt('List name?');if(name){const l={id:Date.now(),name,notes:[]};lists.push(l);currentListId=l.id;save();render();}};
+addListBtn.onclick=()=>{document.body.classList.add('composer-open');listComposer.classList.add('show');listNameInput.focus();addListBtn.classList.add('bounce');};
 cancelBtn.onclick=()=>{document.body.classList.remove('composer-open');composer.classList.remove('show');text.value='';};
-saveBtn.onclick=()=>{const t=text.value.trim();if(t){const current=getCurrentList();current.notes.unshift({id:Date.now(),text:t});save();render();}document.body.classList.remove('composer-open');composer.classList.remove('show');text.value='';};
+saveBtn.onclick=()=>{const t=text.value.trim();if(t){if(!lists.length){const l={id:Date.now(),name:'Notes',notes:[]};lists.push(l);currentListId=l.id;}const current=getCurrentList();current.notes.unshift({id:Date.now(),text:t});save();render();}document.body.classList.remove('composer-open');composer.classList.remove('show');text.value='';};
+listCancelBtn.onclick=()=>{document.body.classList.remove('composer-open');listComposer.classList.remove('show');listNameInput.value='';};
+listSaveBtn.onclick=()=>{const name=listNameInput.value.trim()||'Untitled';const l={id:Date.now(),name,notes:[]};lists.push(l);currentListId=l.id;save();render();document.body.classList.remove('composer-open');listComposer.classList.remove('show');listNameInput.value='';};
 search.oninput=e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('.note').forEach(n=>{const match=n.textContent.toLowerCase().includes(q);n.style.display=match?'':'none';});document.querySelectorAll('.list-section').forEach(sec=>{const visible=[...sec.querySelectorAll('.note')].some(n=>n.style.display!=='none');sec.style.display=visible?'':'none';});};
 search.addEventListener('click',()=>{search.classList.add('bounce');});
 search.addEventListener('animationend',e=>{if(e.animationName==='bounce')search.classList.remove('bounce');});
 add.addEventListener('animationend',e=>{if(e.animationName==='bounce')add.classList.remove('bounce');});
+addListBtn.addEventListener('animationend',e=>{if(e.animationName==='bounce')addListBtn.classList.remove('bounce');});
 render();
 </script>
 </body>

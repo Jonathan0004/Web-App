@@ -1,1 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reminder App</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="top-bar">
+    <div class="actions">
+      <button id="search-btn" aria-label="Search" class="icon-btn">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+          <path d="M15.5 14h-.79l-.28-.27a6.471 6.471 0 001.48-5.34C15.18 5.59 12.6 3 9.25 3S3.32 5.59 3.09 8.93c-.23 3.34 2.36 6.07 5.7 6.07 1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6.25 0C6.01 14 4 11.99 4 9.5S6.01 5 8.5 5 13 7.01 13 9.5 10.99 14 8.5 14z" />
+        </svg>
+      </button>
+      <button id="lists-btn" aria-label="Lists" class="icon-btn">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+          <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zm0-10v2h14V7H7z" />
+        </svg>
+      </button>
+    </div>
+  </header>
+  <main>
+    <section class="next-up-card">
+      <div class="curly">{}</div>
+      <div class="info">
+        <h2>Next Up</h2>
+      </div>
+      <div class="count" id="task-count">0</div>
+    </section>
 
+    <section id="tasks" class="task-list"></section>
+
+    <h3 class="list-header">My Lists</h3>
+    <ul class="lists">
+      <li class="list-item">
+        <span class="list-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+            <path d="M3 6h18v2H3V6zm2 4h14v10H5V10zm4 2v6h2v-6H9zm4 0v6h2v-6h-2z" />
+          </svg>
+        </span>
+        <span class="title">Recently Deleted</span>
+        <span class="list-count" id="deleted-count">0</span>
+      </li>
+    </ul>
+  </main>
+  <button id="add-btn" class="fab" aria-label="Add">+</button>
+  <script src="app.js"></script>
+</body>
+</html>

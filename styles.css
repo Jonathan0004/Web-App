@@ -1,0 +1,115 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #000;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 12px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  margin-left: 8px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.next-up-card {
+  display: flex;
+  align-items: center;
+  margin: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1c8cff 0%, #69b3ff 100%);
+  font-weight: 600;
+}
+
+.next-up-card .curly {
+  font-size: 28px;
+  margin-right: 12px;
+}
+
+.next-up-card h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.next-up-card .count {
+  margin-left: auto;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.list-header {
+  font-size: 20px;
+  margin: 24px 16px 8px;
+  font-weight: 600;
+}
+
+.lists {
+  list-style: none;
+  margin: 0 16px;
+  padding: 0;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  background: #1c1c1e;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.list-item .list-icon {
+  margin-right: 12px;
+  display: flex;
+}
+
+.list-item .title {
+  flex: 1;
+}
+
+.list-item .list-count {
+  font-weight: 600;
+}
+
+.task-list {
+  margin: 0 16px;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #333;
+}
+
+.task input[type="checkbox"] {
+  margin-right: 12px;
+}
+
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: #0a84ff;
+  color: #fff;
+  font-size: 32px;
+  line-height: 0;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}

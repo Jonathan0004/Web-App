@@ -1,1 +1,55 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Image Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:light dark;}
+  body{margin:0;font-family:'Inter',sans-serif;background:#F9F5EC;overflow-x:hidden;-webkit-font-smoothing:antialiased;padding-bottom:calc(env(safe-area-inset-bottom)+80px);} 
+  #results{column-count:2;column-gap:8px;padding:8px;} 
+  .photo{break-inside:avoid;border-radius:16px;overflow:hidden;margin-bottom:8px;opacity:0;transform:translateY(24px) translateX(var(--slideX));filter:blur(12px);transition:opacity .6s ease,transform .6s ease,filter .6s ease;} 
+  .photo.loaded{opacity:1;transform:translateY(0) translateX(0);filter:blur(0);} 
+  .photo img{width:100%;display:block;} 
+  #ui{position:fixed;bottom:0;left:0;right:0;padding-bottom:calc(env(safe-area-inset-bottom)+12px);display:flex;justify-content:center;pointer-events:none;} 
+  #search{pointer-events:auto;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.7);backdrop-filter:blur(20px);padding:10px 16px;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.08);max-width:480px;width:calc(100% - 32px);transition:transform .2s cubic-bezier(.4,0,.2,1),opacity .2s;}
+  #search.pressed{transform:scale(.96);} 
+  #search input{border:none;background:transparent;font-size:16px;flex:1;outline:none;} 
+  #search .material-symbols-rounded{font-size:24px;} 
+  #clearBtn{opacity:.0;transition:opacity .2s;} 
+  #clearBtn.show{opacity:1;} 
+  .tap{transition:transform .2s cubic-bezier(.4,0,.2,1);} 
+  .tap.pressed{transform:scale(.96);} 
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}} 
+</style>
+</head>
+<body>
+<main id="results"></main>
+<div id="ui">
+  <form id="search" class="pill" autocomplete="off">
+    <span class="material-symbols-rounded">search</span>
+    <input id="q" placeholder="Search" maxlength="30">
+    <span id="clearBtn" class="material-symbols-rounded tap">close</span>
+  </form>
+</div>
+<script>
+const form=document.getElementById('search');
+const input=document.getElementById('q');
+const clearBtn=document.getElementById('clearBtn');
+const results=document.getElementById('results');
+let page=1,query='',loading=false,observer;
+function tapFeedback(el){el.addEventListener('pointerdown',()=>el.classList.add('pressed'));el.addEventListener('pointerup',()=>el.classList.remove('pressed'));el.addEventListener('pointerleave',()=>el.classList.remove('pressed'));}
+tapFeedback(form);tapFeedback(clearBtn);
+clearBtn.addEventListener('click',()=>{input.value='';clearBtn.classList.remove('show');input.focus();});
+form.addEventListener('submit',e=>{e.preventDefault();if(!input.value.trim())return;search(input.value.trim());});
+input.addEventListener('input',()=>{clearBtn.classList.toggle('show',input.value.length>0);});
+async function search(q){query=q;page=1;results.innerHTML='';await loadMore();}
+async function loadMore(){if(loading||!query)return;loading=true;try{const r=await fetch(`https://api.openverse.engineering/v1/images?q=${encodeURIComponent(query)}&page=${page}`);const j=await r.json();j.results.forEach((img,i)=>{const d=document.createElement('div');d.className='photo';d.style.setProperty('--slideX',i%2?'-16px':'16px');d.style.transitionDelay=`${i*40}ms`;const im=document.createElement('img');im.src=img.thumbnail||img.url;im.alt=img.title||'';im.onload=()=>d.classList.add('loaded');d.appendChild(im);results.appendChild(d);});page++;}catch(e){}loading=false;}
+window.addEventListener('scroll',()=>{if(window.innerHeight+window.scrollY>=document.body.offsetHeight-500)loadMore();});
+</script>
+</body>
+</html>

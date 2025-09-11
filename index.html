@@ -17,16 +17,20 @@ main{flex:1;overflow:auto;padding:16px;padding-bottom:calc(112px + env(safe-area
 .note.show{opacity:1;transform:none;backdrop-filter:blur(10px);filter:blur(0);}
 .note.hide{opacity:0;transform:translateY(10px);filter:blur(4px);margin-bottom:0;padding-top:0;padding-bottom:0;height:0;}
 .note .delete{position:absolute;top:8px;right:8px;background:transparent;border:none;padding:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:12px;}
-.toolbar{position:fixed;left:0;right:0;bottom:0;padding:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:8px;pointer-events:none;transition:filter .3s;}
-.toolbar> *{pointer-events:auto;height:44px;}
+  .toolbar{position:fixed;left:0;right:0;bottom:0;padding:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:8px;pointer-events:none;transition:filter .3s;}
+  .toolbar> *{pointer-events:auto;height:44px;}
+  #lists{min-width:120px;border:none;border-radius:22px;padding:0 16px;background:rgba(255,255,255,0.6);backdrop-filter:blur(10px);box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+  #lists:focus{outline:none;}
   #search{flex:1;max-width:280px;border:none;border-radius:22px;padding:0 16px;font-size:16px;background:rgba(255,255,255,0.6);backdrop-filter:blur(10px);transition:backdrop-filter .3s;box-shadow:0 4px 12px rgba(0,0,0,0.1);animation:float 3s ease-in-out infinite;}
   #search:focus{outline:none;backdrop-filter:blur(12px);}
   #search.bounce{animation:float 3s ease-in-out infinite,bounce .3s;}
   @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
   @keyframes bounce{0%{transform:translateY(0);}30%{transform:translateY(-5px);}50%{transform:translateY(0);}70%{transform:translateY(-2px);}100%{transform:translateY(0);}}
-#add{width:44px;border:none;border-radius:22px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.6);backdrop-filter:blur(10px);color:#007aff;transition:backdrop-filter .3s;box-shadow:0 4px 12px rgba(0,0,0,0.1);animation:float 3s ease-in-out infinite;}
-#add:hover{backdrop-filter:blur(12px);}
-#add.bounce{animation:float 3s ease-in-out infinite,bounce .3s;}
+  #add{width:44px;border:none;border-radius:22px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.6);backdrop-filter:blur(10px);color:#007aff;transition:backdrop-filter .3s;box-shadow:0 4px 12px rgba(0,0,0,0.1);animation:float 3s ease-in-out infinite;}
+  #add:hover{backdrop-filter:blur(12px);}
+  #add.bounce{animation:float 3s ease-in-out infinite,bounce .3s;}
+  #addList{width:44px;border:none;border-radius:22px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.6);backdrop-filter:blur(10px);color:#007aff;transition:backdrop-filter .3s;box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+  #addList:hover{backdrop-filter:blur(12px);}
 .material-symbols-rounded{font-variation-settings:'FILL' 1,'wght' 700,'GRAD'0,'opsz'24;font-size:24px;}
 #composer{position:fixed;inset:0;background:rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.3s;}
 #composer.show{opacity:1;pointer-events:auto;}
@@ -44,8 +48,10 @@ body.composer-open main,body.composer-open .toolbar{filter:blur(10px);}
 <body>
 <main id="list"></main>
 <nav class="toolbar">
+  <select id="lists"></select>
   <input id="search" type="search" placeholder="Search" autocomplete="off">
   <button id="add" aria-label="Add"><span class="material-symbols-rounded">add</span></button>
+  <button id="addList" aria-label="Add List"><span class="material-symbols-rounded">playlist_add</span></button>
 </nav>
 <div id="composer">
   <div class="sheet">
@@ -58,27 +64,47 @@ body.composer-open main,body.composer-open .toolbar{filter:blur(10px);}
 </div>
 <script>
 (function(){function setVH(){document.documentElement.style.setProperty('--vh',window.innerHeight*0.01+'px');}setVH();window.addEventListener('resize',setVH);})();
-const list=document.getElementById('list');
+const noteList=document.getElementById('list');
 const search=document.getElementById('search');
 const add=document.getElementById('add');
+const listSelect=document.getElementById('lists');
+const addListBtn=document.getElementById('addList');
 const composer=document.getElementById('composer');
 const text=document.getElementById('text');
 const saveBtn=document.getElementById('save');
 const cancelBtn=document.getElementById('cancel');
 const sheet=document.querySelector('.sheet');
 if(window.visualViewport){const vv=window.visualViewport;const adjust=()=>{const offset=window.innerHeight-vv.height-vv.offsetTop;sheet.style.marginBottom=offset>0?offset+'px':'';};vv.addEventListener('resize',adjust);text.addEventListener('focus',adjust);text.addEventListener('blur',()=>{sheet.style.marginBottom='';});}
-let notes=JSON.parse(localStorage.getItem('notes')||'[]');if(notes.length&&typeof notes[0]==='string'){notes=notes.map((t,i)=>({id:Date.now()+i,text:t}));save();}
-function save(){localStorage.setItem('notes',JSON.stringify(notes));}
-function render(){list.innerHTML='';notes.forEach(({id,text})=>{const n=document.createElement('div');n.className='note';n.dataset.id=id;n.innerHTML='<p>'+text+'</p><button class="delete" aria-label="Delete"><span class="material-symbols-rounded">close</span></button>';n.querySelector('.delete').onclick=()=>deleteNote(n,id);list.appendChild(n);requestAnimationFrame(()=>n.classList.add('show'));});}
-function deleteNote(n,id){const h=n.offsetHeight;n.style.height=h+'px';requestAnimationFrame(()=>{n.classList.add('hide');n.style.height=0;});n.addEventListener('transitionend',e=>{if(e.propertyName==='height'){const i=notes.findIndex(nt=>nt.id===id);if(i>-1){notes.splice(i,1);save();}n.remove();}}, {once:true});}
+let lists=JSON.parse(localStorage.getItem('lists')||'[]');
+let currentListId;
+let oldNotes=JSON.parse(localStorage.getItem('notes')||'[]');
+if(!lists.length){
+  if(oldNotes.length){
+    if(typeof oldNotes[0]==='string'){oldNotes=oldNotes.map((t,i)=>({id:Date.now()+i,text:t}));}
+    lists.push({id:Date.now(),name:'Notes',notes:oldNotes});
+    localStorage.removeItem('notes');
+  }else{
+    lists.push({id:Date.now(),name:'Notes',notes:[]});
+  }
+}
+currentListId=lists[0].id;
+save();
+function save(){localStorage.setItem('lists',JSON.stringify(lists));}
+function getCurrentList(){return lists.find(l=>l.id===currentListId);}
+function render(){const current=getCurrentList();noteList.innerHTML='';current.notes.forEach(({id,text})=>{const n=document.createElement('div');n.className='note';n.dataset.id=id;n.innerHTML='<p>'+text+'</p><button class="delete" aria-label="Delete"><span class="material-symbols-rounded">close</span></button>';n.querySelector('.delete').onclick=()=>deleteNote(n,id);noteList.appendChild(n);requestAnimationFrame(()=>n.classList.add('show'));});}
+function deleteNote(n,id){const current=getCurrentList();const h=n.offsetHeight;n.style.height=h+'px';requestAnimationFrame(()=>{n.classList.add('hide');n.style.height=0;});n.addEventListener('transitionend',e=>{if(e.propertyName==='height'){const i=current.notes.findIndex(nt=>nt.id===id);if(i>-1){current.notes.splice(i,1);save();}n.remove();}}, {once:true});}
 add.onclick=()=>{document.body.classList.add('composer-open');composer.classList.add('show');text.focus();add.classList.add('bounce');};
+addListBtn.onclick=()=>{const name=prompt('List name?');if(name){const l={id:Date.now(),name,notes:[]};lists.push(l);currentListId=l.id;save();renderListOptions();render();}};
 cancelBtn.onclick=()=>{document.body.classList.remove('composer-open');composer.classList.remove('show');text.value='';};
-saveBtn.onclick=()=>{const t=text.value.trim();if(t){notes.unshift({id:Date.now(),text:t});save();render();}document.body.classList.remove('composer-open');composer.classList.remove('show');text.value='';};
-  search.oninput=e=>{const q=e.target.value.toLowerCase();[...list.children].forEach(n=>{const match=n.textContent.toLowerCase().includes(q);n.style.display=match?'':'none';});};
+saveBtn.onclick=()=>{const t=text.value.trim();if(t){const current=getCurrentList();current.notes.unshift({id:Date.now(),text:t});save();render();}document.body.classList.remove('composer-open');composer.classList.remove('show');text.value='';};
+  search.oninput=e=>{const q=e.target.value.toLowerCase();[...noteList.children].forEach(n=>{const match=n.textContent.toLowerCase().includes(q);n.style.display=match?'':'none';});};
+  listSelect.onchange=e=>{currentListId=Number(e.target.value);render();};
   search.addEventListener('click',()=>{search.classList.add('bounce');});
   search.addEventListener('animationend',e=>{if(e.animationName==='bounce')search.classList.remove('bounce');});
   add.addEventListener('animationend',e=>{if(e.animationName==='bounce')add.classList.remove('bounce');});
-  render();
+function renderListOptions(){listSelect.innerHTML='';lists.forEach(l=>{const o=document.createElement('option');o.value=l.id;o.textContent=l.name;if(l.id===currentListId)o.selected=true;listSelect.appendChild(o);});}
+renderListOptions();
+render();
 </script>
 </body>
 </html>

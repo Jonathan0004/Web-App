@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,700,1,0&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F9F5EC;}
-html,body{margin:0;padding:0;background:var(--bg);height:100%;font-family:'Inter',sans-serif;color:#222;}
+html,body{margin:0;padding:0;background:var(--bg);height:100%;font-family:'Inter',sans-serif;color:#222;overflow:hidden;}
 body{display:flex;flex-direction:column;height:calc(var(--vh,1vh)*100);}
 main{flex:1;overflow:auto;padding:16px;padding-bottom:calc(112px + env(safe-area-inset-bottom));transition:filter .3s;}
 .note{background:rgba(255,255,255,0.6);backdrop-filter:blur(0);border-radius:16px;padding:12px 16px;margin-bottom:12px;position:relative;opacity:0;transform:translateY(10px);filter:blur(4px);transition:.3s;overflow:hidden;}
@@ -29,6 +29,7 @@ main{flex:1;overflow:auto;padding:16px;padding-bottom:calc(112px + env(safe-area
 #add.bounce{animation:float 3s ease-in-out infinite,bounce .3s;}
 #addList{display:flex;align-items:center;gap:4px;border:none;border-radius:22px;padding:0 16px;height:44px;background:rgba(255,255,255,0.6);backdrop-filter:blur(10px);color:#007aff;box-shadow:0 4px 12px rgba(0,0,0,0.1);margin-bottom:16px;}
 #addList:hover{backdrop-filter:blur(12px);}
+.list-section{border-left:2px solid rgba(0,0,0,0.1);padding-left:12px;margin-bottom:16px;}
 .list-header{display:flex;align-items:center;gap:8px;margin:8px 0;}
 .list-header strong{font-weight:600;flex:1;}
 .list-header.active strong{color:#007aff;}
@@ -78,7 +79,7 @@ body.composer-open main,body.composer-open .toolbar{filter:blur(10px);}
   </div>
 </div>
 <script>
-(function(){function setVH(){document.documentElement.style.setProperty('--vh',window.innerHeight*0.01+'px');}setVH();window.addEventListener('resize',setVH);})();
+(function(){function setVH(){document.documentElement.style.setProperty('--vh',window.innerHeight*0.01+'px');}setVH();window.addEventListener('orientationchange',setVH);})();
 const noteList=document.getElementById('list');
 const search=document.getElementById('search');
 const add=document.getElementById('add');
@@ -97,6 +98,7 @@ if(window.visualViewport){
   const adjust=()=>{
     const offset=window.innerHeight-vv.height-vv.offsetTop;
     sheets.forEach(s=>{s.style.marginBottom=offset>0?offset+'px':'';});
+    window.scrollTo(0,0);
   };
   vv.addEventListener('resize',adjust);
   [text,listNameInput].forEach(el=>{

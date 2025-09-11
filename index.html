@@ -11,14 +11,16 @@
   <style>
     body{margin:0;background:#F9F5EC;font-family:'DM Sans',sans-serif;overflow:hidden;}
     video,canvas{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;transform-origin:top left;}
-    #settingsBtn{position:fixed;left:50%;bottom:0;transform:translate(-50%,20px);padding:16px;border-radius:50%;backdrop-filter:blur(12px);background:rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:transform .4s ease,opacity .4s ease;}
+    #settingsBtn{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);width:56px;height:56px;border-radius:28px;backdrop-filter:blur(12px);background:rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:transform .4s ease,opacity .4s ease;}
     #settingsBtn.show{transform:translate(-50%,0);opacity:1;}
     #settingsBtn:active{transform:translate(-50%,0) scale(.95);opacity:.8;}
     #settingsBtn span{font-size:32px;line-height:0;}
     canvas{pointer-events:none;}
-    #settingsPanel{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);padding:20px 24px;backdrop-filter:blur(16px);background:rgba(255,255,255,0.9);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.1);display:none;flex-direction:column;gap:12px;}
+    #settingsPanel{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);padding:20px 24px;backdrop-filter:blur(16px);background:rgba(255,255,255,0.9);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.1);display:none;flex-direction:column;gap:12px;min-width:200px;}
     #settingsPanel.show{display:flex;}
-    #settingsPanel label{display:flex;align-items:center;gap:8px;font-size:16px;}
+    #settingsPanel label{display:flex;align-items:center;gap:8px;font-size:16px;justify-content:space-between;}
+    #settingsPanel button{padding:8px 12px;border:none;border-radius:8px;background:#fff;cursor:pointer;}
+    #settingsPanel button:active{transform:scale(.97);}
   </style>
 </head>
 <body>
@@ -26,20 +28,26 @@
   <canvas id="canvas"></canvas>
   <div id="settingsBtn"><span class="material-symbols-rounded">settings</span></div>
   <div id="settingsPanel">
-    <label><input type="checkbox" id="zoomMode" checked>Auto Zoom</label>
+    <label><span>Auto Zoom</span><input type="checkbox" id="zoomMode" checked></label>
+    <label><span>Show Box</span><input type="checkbox" id="showBox" checked></label>
+    <label><span>Smoothing</span><input type="range" id="smoothFactor" min="0" max="0.5" step="0.01" value="0.2"></label>
+    <button id="resetView">Reset View</button>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js"></script>
-  <script>
-    const video=document.getElementById('video');
-    const canvas=document.getElementById('canvas');
-    const ctx=canvas.getContext('2d');
-    const settingsBtn=document.getElementById('settingsBtn');
-    requestAnimationFrame(()=>settingsBtn.classList.add('show'));
-    const settingsPanel=document.getElementById('settingsPanel');
-    const zoomModeEl=document.getElementById('zoomMode');
-    let model,zoomMode=true;
-    let smoothBox=null,currentScale=1,currentX=0,currentY=0;
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js"></script>
+    <script>
+      const video=document.getElementById('video');
+      const canvas=document.getElementById('canvas');
+      const ctx=canvas.getContext('2d');
+      const settingsBtn=document.getElementById('settingsBtn');
+      requestAnimationFrame(()=>settingsBtn.classList.add('show'));
+      const settingsPanel=document.getElementById('settingsPanel');
+      const zoomModeEl=document.getElementById('zoomMode');
+      const showBoxEl=document.getElementById('showBox');
+      const smoothFactorEl=document.getElementById('smoothFactor');
+      const resetViewBtn=document.getElementById('resetView');
+      let model,zoomMode=true,showBox=true,smoothFactor=parseFloat(smoothFactorEl.value);
+      let smoothBox=null,currentScale=1,currentX=0,currentY=0;
 
     async function setupCamera(){
       const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
@@ -67,59 +75,75 @@
     function getSmoothBox(box){
       if(!smoothBox) smoothBox=box.slice();
       else{
-        const alpha=.2;
+        const alpha=smoothFactor;
         for(let i=0;i<4;i++) smoothBox[i]+=alpha*(box[i]-smoothBox[i]);
       }
       return smoothBox;
     }
     async function loop(){
-      const preds=await model.estimateFaces(video,false);
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      if(preds.length){
-        const face=preds[0];
-        const [x1,y1]=face.topLeft;
-        const [x2,y2]=face.bottomRight;
-        const box=getSmoothBox([x1,y1,x2-x1,y2-y1]);
-        if(zoomMode){
-          autoZoom(box);
+        const preds=await model.estimateFaces(video,false);
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        if(preds.length){
+          const face=preds[0];
+          const [x1,y1]=face.topLeft;
+          const [x2,y2]=face.bottomRight;
+          const box=getSmoothBox([x1,y1,x2-x1,y2-y1]);
+          if(zoomMode){
+            autoZoom(box);
+            if(showBox) drawBox(box);
+          }else{
+            applyTransform(1,0,0);
+            if(showBox) drawBox(box);
+          }
         }else{
           applyTransform(1,0,0);
-          ctx.lineWidth=2;
-          ctx.strokeStyle='rgba(255,255,255,0.7)';
-          roundRect(box[0],box[1],box[2],box[3],12);
-          ctx.stroke();
+          smoothBox=null;
+          currentScale=1;currentX=0;currentY=0;
         }
-      }else{
-        applyTransform(1,0,0);
-        smoothBox=null;
-        currentScale=1;currentX=0;currentY=0;
+        requestAnimationFrame(loop);
       }
-      requestAnimationFrame(loop);
-    }
-    settingsBtn.addEventListener('click',()=>settingsPanel.classList.toggle('show'));
-    zoomModeEl.addEventListener('change',e=>{
-      zoomMode=e.target.checked;
-      if(!zoomMode){
+      settingsBtn.addEventListener('click',()=>settingsPanel.classList.toggle('show'));
+      zoomModeEl.addEventListener('change',e=>{
+        zoomMode=e.target.checked;
+        if(!zoomMode){
+          applyTransform(1,0,0);
+          currentScale=1;currentX=0;currentY=0;
+        }
+      });
+      showBoxEl.addEventListener('change',e=>{showBox=e.target.checked;});
+      smoothFactorEl.addEventListener('input',e=>{smoothFactor=parseFloat(e.target.value);});
+      resetViewBtn.addEventListener('click',()=>{
         applyTransform(1,0,0);
-        currentScale=1;currentX=0;currentY=0;
-      }
-    });
+        currentScale=1;currentX=0;currentY=0;smoothBox=null;
+      });
     function applyTransform(scale,x,y){
       const t=`translate(${x}px,${y}px) scale(${scale})`;
       video.style.transform=canvas.style.transform=t;
     }
-    function autoZoom(box){
-      const [x,y,w,h]=box;
-      const scale=Math.max(canvas.width/w,canvas.height/h);
-      const offsetX=-x*scale+(canvas.width-w*scale)/2;
-      const offsetY=-y*scale+(canvas.height-h*scale)/2;
-      const alpha=.1;
-      currentScale+=alpha*(scale-currentScale);
-      currentX+=alpha*(offsetX-currentX);
-      currentY+=alpha*(offsetY-currentY);
-      applyTransform(currentScale,currentX,currentY);
-    }
-    (async()=>{await setupCamera();await load();loop();})();
+      function autoZoom(box){
+        let [x,y,w,h]=box;
+        const margin=1.5;
+        const size=Math.max(w,h)*margin;
+        const centerX=x+w/2,centerY=y+h/2;
+        x=centerX-size/2;
+        y=centerY-size/2;
+        w=size;h=size;
+        const scale=Math.min(canvas.width/w,canvas.height/h);
+        const offsetX=-x*scale+(canvas.width-w*scale)/2;
+        const offsetY=-y*scale+(canvas.height-h*scale)/2;
+        const alpha=.15;
+        currentScale+=alpha*(scale-currentScale);
+        currentX+=alpha*(offsetX-currentX);
+        currentY+=alpha*(offsetY-currentY);
+        applyTransform(currentScale,currentX,currentY);
+      }
+      function drawBox(box){
+        ctx.lineWidth=2;
+        ctx.strokeStyle='rgba(255,255,255,0.7)';
+        roundRect(box[0],box[1],box[2],box[3],12);
+        ctx.stroke();
+      }
+      (async()=>{await setupCamera();await load();loop();})();
   </script>
 </body>
 </html>

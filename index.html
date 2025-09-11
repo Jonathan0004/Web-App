@@ -168,8 +168,10 @@ function autoZoom(box){
   y=centerY-size/2;
   w=size;h=size;
   const scale=Math.min(canvas.width/w,canvas.height/h);
-  const offsetX=-x*scale+(canvas.width-w*scale)/2;
-  const offsetY=-y*scale+(canvas.height-h*scale)/2;
+  const scaleX=canvas.clientWidth/canvas.width;
+  const scaleY=canvas.clientHeight/canvas.height;
+  const offsetX=(-x*scale+(canvas.width-w*scale)/2)*scaleX;
+  const offsetY=(-y*scale+(canvas.height-h*scale)/2)*scaleY;
   currentScale+=zoomSpeed*(scale-currentScale);
   currentX+=zoomSpeed*(offsetX-currentX);
   currentY+=zoomSpeed*(offsetY-currentY);

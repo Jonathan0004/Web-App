@@ -65,7 +65,12 @@
 <body>
   <header>
     <h1>Weather</h1>
+    <form id="search" style="display:flex;gap:0.5rem;justify-content:center;margin-bottom:0.5rem;">
+      <input id="city" type="text" placeholder="Search city" style="flex:1;padding:0.25rem 0.5rem;border-radius:6px;border:1px solid #ccc;">
+      <button type="submit" style="padding:0.25rem 0.75rem;border:none;border-radius:6px;background:#007bff;color:#fff;">Go</button>
+    </form>
     <p id="location">Locating...</p>
+    <button id="unit-toggle" style="align-self:center;padding:0.25rem 0.5rem;border:none;border-radius:6px;background:#e2e2e2;cursor:pointer;">°F</button>
   </header>
 
   <section id="current">
@@ -77,22 +82,29 @@
   <section id="forecast"></section>
 
   <script>
+    let currentLat = null;
+    let currentLon = null;
+    let unit = 'celsius';
+
     async function getWeather(lat, lon) {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relativehumidity_2m,pressure_msl&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto`;
+      currentLat = lat;
+      currentLon = lon;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relativehumidity_2m,pressure_msl,apparent_temperature&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&temperature_unit=${unit}&windspeed_unit=${unit === 'celsius' ? 'kmh' : 'mph'}&timezone=auto`;
       const res = await fetch(url);
       const data = await res.json();
       const w = data.current_weather;
       const idx = data.hourly.time.indexOf(w.time);
       const humidity = data.hourly.relativehumidity_2m[idx];
       const pressure = data.hourly.pressure_msl[idx];
+      const feels = data.hourly.apparent_temperature[idx];
 
-      document.getElementById('current-temp').textContent = Math.round(w.temperature) + '°C';
-      document.getElementById('current-summary').textContent = `Wind ${w.windspeed} km/h`;
+      document.getElementById('current-temp').textContent = Math.round(w.temperature) + (unit === 'celsius' ? '°C' : '°F');
+      document.getElementById('current-summary').textContent = `Feels like ${Math.round(feels)}° | Wind ${w.windspeed} ${unit === 'celsius' ? 'km/h' : 'mph'}`;
       document.getElementById('details').innerHTML = `Humidity ${humidity}% &nbsp;|&nbsp; Pressure ${Math.round(pressure)} hPa`;
 
       const fc = document.getElementById('forecast');
       fc.innerHTML = '';
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 7; i++) {
         const day = document.createElement('div');
         day.className = 'day';
         const date = new Date(data.daily.time[i]);
@@ -105,6 +117,35 @@
       const details = document.getElementById('details');
       details.innerHTML += `<br>Sunrise ${sunrise} &nbsp;|&nbsp; Sunset ${sunset}`;
     }
+
+    async function geocode(city) {
+      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.results && data.results.length > 0) {
+        const place = data.results[0];
+        document.getElementById('location').textContent = `${place.name}, ${place.country}`;
+        await getWeather(place.latitude, place.longitude);
+      } else {
+        document.getElementById('location').textContent = 'City not found';
+      }
+    }
+
+    document.getElementById('search').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const city = document.getElementById('city').value.trim();
+      if (city) {
+        geocode(city);
+      }
+    });
+
+    document.getElementById('unit-toggle').addEventListener('click', () => {
+      unit = unit === 'celsius' ? 'fahrenheit' : 'celsius';
+      document.getElementById('unit-toggle').textContent = unit === 'celsius' ? '°F' : '°C';
+      if (currentLat && currentLon) {
+        getWeather(currentLat, currentLon);
+      }
+    });
 
     function onLocation(pos) {
       const { latitude, longitude } = pos.coords;

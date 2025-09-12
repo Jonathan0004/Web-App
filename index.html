@@ -41,13 +41,13 @@
       align-items:center;
       justify-content:center;
       opacity:0;
-      transform:translateX(20px);
+      filter:blur(20px);
       pointer-events:none;
-      transition:opacity 0.2s ease, transform 0.2s ease;
+      transition:opacity 0.2s ease, filter 0.2s ease;
     }
     .page.active {
       opacity:1;
-      transform:none;
+      filter:none;
       pointer-events:auto;
     }
     h1{
@@ -152,7 +152,7 @@
       align-items:center;
       justify-content:center;
       border-radius:50%;
-      transition:opacity 0.2s ease, transform 0.2s ease;
+      transition:opacity 0.2s ease, transform 0.2s ease, clip-path 0.3s ease;
       opacity:0.6;
       color:var(--text);
       position:relative;
@@ -160,15 +160,26 @@
     }
     .nav button.active{
       opacity:1;
-      color:white;
     }
     .nav button:active{
       transform:scale(0.96);
     }
+    .nav button::after{
+      content: attr(data-icon);
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:white;
+      pointer-events:none;
+      clip-path: circle(20px at var(--cx, -40px) 20px);
+      transition:clip-path 0.3s ease;
+    }
     .nav-indicator{
       position:absolute;
       top:4px;
-      left:4px;
+      left:0;
       width:40px;
       height:40px;
       border-radius:50%;
@@ -180,7 +191,7 @@
       .page, .nav button, .pill, #suggestions, #suggestions button {
         transition:opacity 0.1s ease;
       }
-      .page { transform:none; }
+      .page { filter:none; }
       #suggestions { transform:translate(-50%,0); }
       #suggestions button { transform:none; }
     }
@@ -197,9 +208,15 @@
   </div>
   <div id="alerts" class="page">
     <h1>Alerts</h1>
+    <div id="alerts-content" class="sub"></div>
   </div>
   <div id="settings" class="page">
     <h1>Settings</h1>
+    <div id="settings-content" class="sub">
+      <label style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="unit-toggle"> Use Fahrenheit
+      </label>
+    </div>
   </div>
   <div class="bottom-bar">
     <div id="search-pill" class="pill">
@@ -208,10 +225,10 @@
     </div>
     <div class="nav">
       <div class="nav-indicator"></div>
-      <button class="material-symbols-rounded active" data-target="now" aria-label="Current weather">sunny</button>
-      <button class="material-symbols-rounded" data-target="week" aria-label="7-day forecast">calendar_month</button>
-      <button class="material-symbols-rounded" data-target="alerts" aria-label="Weather alerts">notifications</button>
-      <button class="material-symbols-rounded" data-target="settings" aria-label="Settings">settings</button>
+      <button class="material-symbols-rounded active" data-target="now" data-icon="sunny" aria-label="Current weather">sunny</button>
+      <button class="material-symbols-rounded" data-target="week" data-icon="calendar_month" aria-label="7-day forecast">calendar_month</button>
+      <button class="material-symbols-rounded" data-target="alerts" data-icon="notifications" aria-label="Weather alerts">notifications</button>
+      <button class="material-symbols-rounded" data-target="settings" data-icon="settings" aria-label="Settings">settings</button>
     </div>
   </div>
   <div id="suggestions"></div>
@@ -226,6 +243,11 @@
     const nav = document.querySelector('.nav');
     const navIndicator = document.querySelector('.nav-indicator');
     const navButtons = nav.querySelectorAll('button');
+    const alertsContent = document.getElementById('alerts-content');
+    const unitToggle = document.getElementById('unit-toggle');
+
+    let currentLat, currentLon;
+    let useF = false;
 
     let typingTimer;
     search.addEventListener('input', () => {
@@ -269,7 +291,10 @@
     }
 
     async function loadWeather(lat, lon){
-      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,relativehumidity_2m,windspeed_10m&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`);
+      currentLat = lat;
+      currentLon = lon;
+      const unit = useF ? 'fahrenheit' : 'celsius';
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,relativehumidity_2m,windspeed_10m&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&temperature_unit=${unit}`);
       const data = await res.json();
       if (data && data.current){
         tempEl.textContent = Math.round(data.current.temperature_2m) + '°';
@@ -308,6 +333,30 @@
           });
         });
       }
+      loadAlerts(lat, lon);
+    }
+
+    async function loadAlerts(lat, lon){
+      alertsContent.textContent = 'Loading...';
+      try {
+        const res = await fetch(`https://api.weather.gov/alerts/active?point=${lat},${lon}`, {
+          headers: { 'User-Agent': 'web-app' }
+        });
+        const data = await res.json();
+        alertsContent.innerHTML = '';
+        if (data.features && data.features.length){
+          data.features.forEach(a => {
+            const div = document.createElement('div');
+            div.textContent = a.properties.headline || a.properties.event;
+            div.style.margin = '4px 0';
+            alertsContent.appendChild(div);
+          });
+        } else {
+          alertsContent.textContent = 'No active alerts.';
+        }
+      } catch(e){
+        alertsContent.textContent = 'Failed to load alerts.';
+      }
     }
 
     function codeToText(code){
@@ -321,11 +370,20 @@
       return map[code] || '';
     }
 
+    function moveIndicator(btn){
+      const center = btn.offsetLeft + btn.offsetWidth/2;
+      navIndicator.style.transform = `translateX(${btn.offsetLeft}px)`;
+      navButtons.forEach(b => {
+        const cx = center - b.offsetLeft;
+        b.style.setProperty('--cx', cx + 'px');
+      });
+    }
+
     navButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         navButtons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        navIndicator.style.transform = `translateX(${btn.offsetLeft - 4}px)`;
+        moveIndicator(btn);
         showPage(btn.dataset.target);
       });
     });
@@ -333,7 +391,14 @@
     window.addEventListener('load', () => {
       const active = document.querySelector('.nav button.active');
       if(active){
-        navIndicator.style.transform = `translateX(${active.offsetLeft - 4}px)`;
+        moveIndicator(active);
+      }
+    });
+
+    unitToggle.addEventListener('change', () => {
+      useF = unitToggle.checked;
+      if(currentLat !== undefined) {
+        loadWeather(currentLat, currentLon);
       }
     });
 

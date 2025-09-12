@@ -31,7 +31,7 @@ canvas {
 #controls {
   position:fixed;
   left:50%;
-  bottom:0;
+  bottom:calc(env(safe-area-inset-bottom) + 20px);
   transform:translateX(-50%);
   display:flex;
   gap:12px;
@@ -41,6 +41,7 @@ canvas {
   border-radius:32px;
   box-shadow:0 4px 12px rgba(0,0,0,0.05);
   pointer-events:auto;
+  z-index:10;
 }
 button {
   background:transparent;
@@ -71,8 +72,9 @@ button.selected {background:rgba(0,0,0,0.05);}
   backdrop-filter:blur(var(--pill-blur));
   border-top-left-radius:24px;
   border-top-right-radius:24px;
-  padding:20px;
+  padding:20px 20px calc(env(safe-area-inset-bottom) + 20px);
   box-shadow:0 -4px 12px rgba(0,0,0,0.05);
+  z-index:20;
 }
 .sheet.show {transform:none; opacity:1;}
 .sheet header {
@@ -185,7 +187,7 @@ const ctx=canvas.getContext('2d');
 let img=new Image();
 let rotation=0;
 let flipH=1;
-let filter='none';
+let filter='';
 let brightness=1,contrast=1,saturation=1;
 
 function render(){
@@ -203,7 +205,8 @@ function render(){
   ctx.translate(newW/2,newH/2);
   ctx.rotate(rad);
   ctx.scale(flipH,1);
-  ctx.filter=`${filter} brightness(${brightness}) contrast(${contrast}) saturate(${saturation})`;
+  const filterString=[filter,`brightness(${brightness})`,`contrast(${contrast})`,`saturate(${saturation})`].filter(Boolean).join(' ');
+  ctx.filter=filterString;
   ctx.drawImage(img,-w/2,-h/2);
   ctx.restore();
   updatePreviews();
@@ -213,7 +216,7 @@ fileInput.addEventListener('change',e=>{
   const file=e.target.files[0];
   if(!file)return;
   img.src=URL.createObjectURL(file);
-  img.onload=()=>{rotation=0;flipH=1;filter='none';brightness=1;contrast=1;saturation=1;render();};
+  img.onload=()=>{rotation=0;flipH=1;filter='';brightness=1;contrast=1;saturation=1;render();};
 });
 
 function openSheet(name){
@@ -246,7 +249,7 @@ filterSheet.querySelectorAll('.filters button').forEach(btn=>{
   btn.addEventListener('click',()=>{
     filterSheet.querySelectorAll('button').forEach(b=>b.classList.remove('selected'));
     btn.classList.add('selected');
-    filter=btn.dataset.filter==='none'?'none':btn.dataset.filter;
+    filter=btn.dataset.filter==='none'?'':btn.dataset.filter;
     render();
   });
 });

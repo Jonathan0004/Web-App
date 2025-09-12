@@ -114,15 +114,20 @@
       pointer-events:auto;
       transform:translate(-50%,0);
     }
-    #suggestions div{
+    #suggestions button{
+      display:block;
+      width:100%;
       padding:12px 20px;
       font-size:16px;
+      background:none;
+      border:none;
+      text-align:left;
       cursor:pointer;
       transition:opacity 0.2s ease, transform 0.2s ease, background 0.2s;
       opacity:0;
       transform:translateY(6px);
     }
-    #suggestions div:hover{
+    #suggestions button:hover{
       background:rgba(0,0,0,0.05);
     }
     .nav{
@@ -130,29 +135,36 @@
       backdrop-filter:blur(20px);
       -webkit-backdrop-filter:blur(20px);
       border-radius:32px;
-      padding:10px 24px;
+      padding:6px 12px;
       display:flex;
-      gap:32px;
+      gap:8px;
       box-shadow:0 2px 4px rgba(0,0,0,0.1);
     }
-    .nav span{
+    .nav button{
+      background:none;
+      border:none;
       font-size:24px;
-      transition:opacity 0.2s ease, transform 0.2s ease;
+      cursor:pointer;
+      padding:8px;
+      border-radius:50%;
+      transition:opacity 0.2s ease, transform 0.2s ease, background 0.2s;
       opacity:0.6;
     }
-    .nav span.active{
+    .nav button.active{
       opacity:1;
+      background:var(--accent);
+      color:white;
     }
-    .nav span:active{
+    .nav button:active{
       transform:scale(0.96);
     }
     @media (prefers-reduced-motion: reduce) {
-      .page, .nav span, .pill, #suggestions, #suggestions div {
+      .page, .nav button, .pill, #suggestions, #suggestions button {
         transition:opacity 0.1s ease;
       }
       .page { transform:none; }
       #suggestions { transform:translate(-50%,0); }
-      #suggestions div { transform:none; }
+      #suggestions button { transform:none; }
     }
   </style>
 </head>
@@ -160,6 +172,7 @@
   <div id="now" class="page active">
     <h1 id="temp">--°</h1>
     <div id="desc" class="sub"></div>
+    <div id="details" class="sub"></div>
   </div>
   <div id="week" class="page">
     <div id="forecast"></div>
@@ -170,8 +183,8 @@
       <input id="search" placeholder="Search" autocomplete="off">
     </div>
     <div class="nav">
-      <span id="nav-now" class="material-symbols-rounded active">sunny</span>
-      <span id="nav-week" class="material-symbols-rounded">calendar_month</span>
+      <button id="nav-now" class="material-symbols-rounded active" aria-label="Current weather">sunny</button>
+      <button id="nav-week" class="material-symbols-rounded" aria-label="7-day forecast">calendar_month</button>
     </div>
   </div>
   <div id="suggestions"></div>
@@ -180,6 +193,7 @@
     const sug = document.getElementById('suggestions');
     const tempEl = document.getElementById('temp');
     const descEl = document.getElementById('desc');
+    const detailsEl = document.getElementById('details');
     const forecastEl = document.getElementById('forecast');
     const pageNow = document.getElementById('now');
     const pageWeek = document.getElementById('week');
@@ -201,13 +215,15 @@
     });
 
     async function fetchSuggestions(q){
-      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=en&format=json`);
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=en&format=json`);
       const data = await res.json();
       sug.innerHTML = '';
       if (data && data.results){
+        data.results.sort((a,b)=>(b.population||0)-(a.population||0));
         data.results.forEach((r,i)=>{
-          const div = document.createElement('div');
-          div.textContent = r.name + (r.country ? ', '+r.country : '');
+          const div = document.createElement('button');
+          div.type = 'button';
+          div.textContent = `${r.name}${r.admin1 ? ', ' + r.admin1 : ''}${r.country ? ', ' + r.country : ''}`;
           div.addEventListener('click', ()=> {
             search.value = r.name;
             sug.classList.remove('show');
@@ -226,11 +242,12 @@
     }
 
     async function loadWeather(lat, lon){
-      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`);
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,relativehumidity_2m,windspeed_10m&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`);
       const data = await res.json();
       if (data && data.current){
         tempEl.textContent = Math.round(data.current.temperature_2m) + '°';
         descEl.textContent = codeToText(data.current.weathercode);
+        detailsEl.textContent = `Humidity: ${data.current.relativehumidity_2m}% · Wind: ${Math.round(data.current.windspeed_10m)} km/h`;
       }
       if (data && data.daily){
         forecastEl.innerHTML = '';
@@ -240,14 +257,21 @@
           row.style.justifyContent='space-between';
           row.style.alignItems='center';
           row.style.padding='8px 0';
+          row.style.gap='8px';
           row.style.opacity='0';
           row.style.transform='translateY(10px)';
           row.style.transition='opacity 0.2s ease, transform 0.2s ease';
           const label = document.createElement('div');
+          label.style.width = '60px';
           label.textContent = new Date(d).toLocaleDateString(undefined,{weekday:'short'});
+          const desc = document.createElement('div');
+          desc.textContent = codeToText(data.daily.weathercode[i]);
+          desc.style.flex = '1';
+          desc.style.textAlign = 'center';
+          desc.style.opacity = '0.7';
           const temps = document.createElement('div');
           temps.textContent = Math.round(data.daily.temperature_2m_max[i])+'° / '+Math.round(data.daily.temperature_2m_min[i])+'°';
-          row.append(label, temps);
+          row.append(label, desc, temps);
           forecastEl.appendChild(row);
           requestAnimationFrame(()=>{
             setTimeout(()=>{

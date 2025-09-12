@@ -145,6 +145,8 @@
       background:none;
       border:none;
       font-size:24px;
+      padding:0;
+      line-height:1;
       cursor:pointer;
       width:40px;
       height:40px;
@@ -173,6 +175,7 @@
       justify-content:center;
       color:white;
       pointer-events:none;
+      line-height:1;
       clip-path: circle(20px at var(--cx, -40px) 20px);
       transition:clip-path 0.3s ease;
     }
@@ -184,8 +187,17 @@
       height:40px;
       border-radius:50%;
       background:var(--accent);
-      transition:transform 0.3s ease;
       pointer-events:none;
+      --x:0;
+      transform:translateX(var(--x));
+    }
+    .nav-indicator.bounce{
+      animation:bounce 0.3s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes bounce{
+      0%{transform:translateX(var(--x)) scale(0.92);}
+      50%{transform:translateX(var(--x)) scale(1.06);}
+      100%{transform:translateX(var(--x)) scale(1);}
     }
     @media (prefers-reduced-motion: reduce) {
       .page, .nav button, .pill, #suggestions, #suggestions button {
@@ -372,7 +384,10 @@
 
     function moveIndicator(btn){
       const center = btn.offsetLeft + btn.offsetWidth/2;
-      navIndicator.style.transform = `translateX(${btn.offsetLeft}px)`;
+      navIndicator.style.setProperty('--x', btn.offsetLeft + 'px');
+      navIndicator.classList.remove('bounce');
+      void navIndicator.offsetWidth;
+      navIndicator.classList.add('bounce');
       navButtons.forEach(b => {
         const cx = center - b.offsetLeft;
         b.style.setProperty('--cx', cx + 'px');

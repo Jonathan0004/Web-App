@@ -71,6 +71,9 @@
       background: var(--pill);
       box-shadow: var(--shadow);
       backdrop-filter: blur(20px);
+      border: none;
+      cursor: pointer;
+      outline: none;
       transition: transform .22s cubic-bezier(.2,.7,.4,1), opacity .22s;
     }
     .pill:active {
@@ -84,6 +87,7 @@
       flex: 1;
       max-width: 200px;
       gap: 8px;
+      cursor: text;
     }
     #searchPill input {
       border: none;
@@ -152,6 +156,11 @@
       align-items: center;
       justify-content: center;
       border-radius: 16px;
+      background: var(--pill);
+      box-shadow: var(--shadow);
+      border: none;
+      cursor: pointer;
+      outline: none;
       transition: transform .22s cubic-bezier(.2,.7,.4,1), opacity .22s;
     }
     .iconBtn:active {
@@ -174,21 +183,21 @@
       <span class="material-symbols-rounded">search</span>
       <input id="search" type="text" placeholder="Search" />
     </div>
-    <div id="addBtn" class="pill">
-      <span class="material-symbols-rounded">add</span>
-    </div>
+    <button id="addBtn" class="pill" type="button" aria-label="New note">
+      <span class="material-symbols-rounded">note_add</span>
+    </button>
   </div>
 
   <div id="sheetBackdrop"></div>
   <div id="sheet">
     <header>
-      <button id="closeSheet" class="iconBtn">
+      <button id="closeSheet" class="iconBtn" type="button" aria-label="Close">
         <span class="material-symbols-rounded">close</span>
       </button>
-      <button id="deleteNote" class="iconBtn" style="margin-left:auto;">
+      <button id="deleteNote" class="iconBtn" style="margin-left:auto;" type="button" aria-label="Delete">
         <span class="material-symbols-rounded">delete</span>
       </button>
-      <button id="saveNote" class="iconBtn">
+      <button id="saveNote" class="iconBtn" type="button" aria-label="Save">
         <span class="material-symbols-rounded">check</span>
       </button>
     </header>

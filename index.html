@@ -1,1 +1,168 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no"/>
+<title>Notes</title>
+<style>
+:root{
+  --accent:#3a7afe;
+  --bg:#F9F5EC;
+  --radius:16px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-feature-settings:"kern" 1;
+  font-optical-sizing:auto;
+}
+body{
+  margin:0;
+  background:var(--bg);
+  color:#222;
+  height:100dvh;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+main{
+  position:relative;
+  height:var(--vh,100dvh);
+  overflow:auto;
+  padding:20px;
+  padding-bottom:calc(env(safe-area-inset-bottom) + 120px);
+  box-sizing:border-box;
+}
+.note{
+  position:relative;
+  overflow:hidden;
+  margin-bottom:12px;
+  border-radius:var(--radius);
+  background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,0.15);
+  touch-action:pan-y;
+}
+.note.pinned{box-shadow:0 2px 5px rgba(0,0,0,0.2);}
+.note .card{
+  padding:16px;
+  transition:transform .2s ease;
+  will-change:transform;
+}
+.note .swipe-icon{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  opacity:0;
+  color:#fff;
+  pointer-events:none;
+}
+.note .swipe-icon.pin{left:12px;}
+.note .swipe-icon.del{right:12px;}
+.nav{
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  gap:12px;
+  z-index:10;
+}
+.pill{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-width:72px;
+  height:44px;
+  padding:6px 14px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.6);
+  backdrop-filter:saturate(180%) blur(20px);
+  box-shadow:0 2px 4px rgba(0,0,0,0.15);
+  color:#222;
+  font-size:12px;
+  line-height:1;
+  gap:4px;
+  transition:transform .2s cubic-bezier(.4,0,.2,1),opacity .2s;
+}
+.pill:active{transform:scale(.96);}
+.icon{width:20px;height:20px;fill:currentColor;line-height:1;vertical-align:middle;}
+.icon-btn{background:rgba(255,255,255,0.6);backdrop-filter:saturate(180%) blur(20px);border:none;border-radius:999px;padding:8px;box-shadow:0 2px 4px rgba(0,0,0,0.15);}
+.icon-btn:active{transform:scale(.96);}
+.overlay{
+  position:fixed;inset:0;display:flex;justify-content:center;align-items:flex-end;
+  background:rgba(0,0,0,0.1);backdrop-filter:blur(10px);
+  opacity:0;pointer-events:none;transition:opacity .2s ease;
+}
+.overlay.show{opacity:1;pointer-events:auto;}
+.sheet{
+  background:#fff;border-radius:24px 24px 0 0;padding:20px;width:100%;max-width:600px;max-height:100%;
+  transform:translateY(100%);transition:transform .3s ease;
+}
+.overlay.show .sheet{transform:translateY(0);}
+#editor textarea{width:100%;border:none;outline:none;resize:none;font-size:17px;font-family:inherit;padding:0;margin-top:40px;background:transparent;}
+#editor input{width:100%;border:none;border-radius:var(--radius);padding:8px;margin-top:12px;background:#f0f0f0;font-size:14px;}
+#editor header,#searchOverlay header,#optionsOverlay header{display:flex;justify-content:space-between;align-items:center;}
+#searchOverlay input{width:100%;border:none;border-radius:var(--radius);padding:12px;margin-top:40px;background:#f0f0f0;font-size:16px;}
+#optionsOverlay .pill{width:100%;margin-top:12px;}
+.tags{margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;}
+.tags span{background:#eee;border-radius:999px;padding:2px 8px;font-size:10px;}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<symbol id="add" viewBox="0 -960 960 960"><path d="M440-440H240q-17 0-28.5-11.5T200-480q0-17 11.5-28.5T240-520h200v-200q0-17 11.5-28.5T480-760q17 0 28.5 11.5T520-720v200h200q17 0 28.5 11.5T760-480q0 17-11.5 28.5T720-440H520v200q0 17-11.5 28.5T480-200q-17 0-28.5-11.5T440-240v-200Z"/></symbol>
+<symbol id="search" viewBox="0 -960 960 960"><path d="M380-320q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l224 224q11 11 11 28t-11 28q-11 11-28 11t-28-11L532-372q-30 24-69 38t-83 14Zm0-80q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></symbol>
+<symbol id="delete" viewBox="0 -960 960 960"><path d="M280-120q-33 0-56.5-23.5T200-200v-520q-17 0-28.5-11.5T160-760q0-17 11.5-28.5T200-800h160q0-17 11.5-28.5T400-840h160q17 0 28.5 11.5T600-800h160q17 0 28.5 11.5T800-760q0 17-11.5 28.5T760-720v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM400-280q17 0 28.5-11.5T440-320v-280q0-17-11.5-28.5T400-640q-17 0-28.5 11.5T360-600v280q0 17 11.5 28.5T400-280Zm160 0q17 0 28.5-11.5T600-320v-280q0-17-11.5-28.5T560-640q-17 0-28.5 11.5T520-600v280q0 17 11.5 28.5T560-280ZM280-720v520-520Z"/></symbol>
+<symbol id="push_pin" viewBox="0 -960 960 960"><path d="M640-760v280l68 68q6 6 9 13.5t3 15.5v23q0 17-11.5 28.5T680-320H520v234q0 17-11.5 28.5T480-46q-17 0-28.5-11.5T440-86v-234H280q-17 0-28.5-11.5T240-360v-23q0-8 3-15.5t9-13.5l68-68v-280q-17 0-28.5-11.5T280-800q0-17 11.5-28.5T320-840h320q17 0 28.5 11.5T680-800q0 17-11.5 28.5T640-760ZM354-400h252l-46-46v-314H400v314l-46 46Zm126 0Z"/></symbol>
+<symbol id="close" viewBox="0 -960 960 960"><path d="M480-424 284-228q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536-480l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480-424Z"/></symbol>
+<symbol id="more" viewBox="0 -960 960 960"><path d="M240-400q-33 0-56.5-23.5T160-480q0-33 23.5-56.5T240-560q33 0 56.5 23.5T320-480q0 33-23.5 56.5T240-400Zm240 0q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm240 0q-33 0-56.5-23.5T640-480q0-33 23.5-56.5T720-560q33 0 56.5 23.5T800-480q0 33-23.5 56.5T720-400Z"/></symbol>
+<symbol id="download" viewBox="0 -960 960 960"><path d="M480-337q-8 0-15-2.5t-13-8.5L308-492q-12-12-11.5-28t11.5-28q12-12 28.5-12.5T365-549l75 75v-286q0-17 11.5-28.5T480-800q17 0 28.5 11.5T520-760v286l75-75q12-12 28.5-11.5T652-548q11 12 11.5 28T652-492L508-348q-6 6-13 8.5t-15 2.5ZM240-160q-33 0-56.5-23.5T160-240v-80q0-17 11.5-28.5T200-360q17 0 28.5 11.5T240-320v80h480v-80q0-17 11.5-28.5T760-360q17 0 28.5 11.5T800-320v80q0 33-23.5 56.5T720-160H240Z"/></symbol>
+<symbol id="upload" viewBox="0 -960 960 960"><path d="M240-160q-33 0-56.5-23.5T160-240v-80q0-17 11.5-28.5T200-360q17 0 28.5 11.5T240-320v80h480v-80q0-17 11.5-28.5T760-360q17 0 28.5 11.5T800-320v80q0 33-23.5 56.5T720-160H240Zm200-486-75 75q-12 12-28.5 11.5T308-572q-11-12-11.5-28t11.5-28l144-144q6-6 13-8.5t15-2.5q8 0 15 2.5t13 8.5l144 144q12 12 11.5 28T652-572q-12 12-28.5 12.5T595-571l-75-75v286q0 17-11.5 28.5T480-320q-17 0-28.5-11.5T440-360v-286Z"/></symbol>
+</svg>
+<main id="notes"></main>
+<nav id="nav" class="nav">
+  <button id="addBtn" class="pill"><svg class="icon"><use href="#add"></use></svg><span>Add</span></button>
+  <button id="searchBtn" class="pill"><svg class="icon"><use href="#search"></use></svg><span>Search</span></button>
+  <button id="moreBtn" class="pill"><svg class="icon"><use href="#more"></use></svg><span>More</span></button>
+</nav>
+<div id="editor" class="overlay">
+  <div class="sheet">
+    <header>
+      <button id="closeEditor" class="icon-btn"><svg class="icon"><use href="#close"></use></svg></button>
+      <button id="pinEditor" class="icon-btn"><svg class="icon"><use href="#push_pin"></use></svg></button>
+    </header>
+    <textarea id="noteText" placeholder="Note"></textarea>
+    <input id="noteTags" placeholder="tags"/>
+    <button id="deleteEditor" class="pill" style="margin-top:20px;background:rgba(255,0,0,0.15);color:#b00000"><svg class="icon"><use href="#delete"></use></svg><span>Delete</span></button>
+  </div>
+</div>
+<div id="searchOverlay" class="overlay">
+  <div class="sheet">
+    <header>
+      <button id="closeSearch" class="icon-btn"><svg class="icon"><use href="#close"></use></svg></button>
+    </header>
+    <input id="searchInput" placeholder="Search"/>
+  </div>
+</div>
+<div id="optionsOverlay" class="overlay">
+  <div class="sheet">
+    <header>
+      <button id="closeOptions" class="icon-btn"><svg class="icon"><use href="#close"></use></svg></button>
+    </header>
+    <button id="importBtn" class="pill"><svg class="icon"><use href="#upload"></use></svg><span>Import</span></button>
+    <button id="exportBtn" class="pill"><svg class="icon"><use href="#download"></use></svg><span>Export</span></button>
+    <input type="file" id="importFile" accept="application/json" hidden />
+  </div>
+</div>
+<script>
+const root=document.documentElement,notesEl=document.getElementById('notes'),editor=document.getElementById('editor'),noteText=document.getElementById('noteText'),noteTags=document.getElementById('noteTags'),pinEditor=document.getElementById('pinEditor'),deleteEditor=document.getElementById('deleteEditor'),searchOverlay=document.getElementById('searchOverlay'),searchInput=document.getElementById('searchInput'),optionsOverlay=document.getElementById('optionsOverlay'),importFile=document.getElementById('importFile');
+const nav=document.getElementById('nav');
+let notes=JSON.parse(localStorage.getItem('notes')||'[]'),current=null,searchQuery='';
+function save(){localStorage.setItem('notes',JSON.stringify(notes));}
+function updateViewport(){const vv=window.visualViewport||{height:window.innerHeight,offsetTop:0};root.style.setProperty('--vh',vv.height+'px');nav.style.bottom=`calc(env(safe-area-inset-bottom) + ${-vv.offsetTop+16}px)`;}window.visualViewport&&visualViewport.addEventListener('resize',updateViewport);window.addEventListener('orientationchange',updateViewport);updateViewport();
+function render(){notesEl.innerHTML='';const list=notes.filter(n=>{const t=n.text.toLowerCase(),tags=n.tags.join(' ').toLowerCase();return!searchQuery||t.includes(searchQuery)||tags.includes(searchQuery);}).sort((a,b)=>b.pinned-a.pinned||b.id-a.id);list.forEach(n=>{const wrap=document.createElement('div');wrap.className='note'+(n.pinned?' pinned':'');wrap.dataset.id=n.id;const card=document.createElement('div');card.className='card';const txt=document.createElement('div');txt.textContent=n.text;card.appendChild(txt);if(n.tags.length){const tagWrap=document.createElement('div');tagWrap.className='tags';n.tags.forEach(t=>{const s=document.createElement('span');s.textContent=t;tagWrap.appendChild(s);});card.appendChild(tagWrap);}const pinIcon=document.createElement('div');pinIcon.className='swipe-icon pin';pinIcon.innerHTML='<svg class="icon"><use href="#push_pin"></use></svg>';const delIcon=document.createElement('div');delIcon.className='swipe-icon del';delIcon.innerHTML='<svg class="icon"><use href="#delete"></use></svg>';wrap.appendChild(card);wrap.appendChild(pinIcon);wrap.appendChild(delIcon);notesEl.appendChild(wrap);wrap.addEventListener('click',()=>openEditor(n));let startX,dx,rafId;function move(){card.style.transform=`translateX(${dx}px)`;pinIcon.style.opacity=dx>0?Math.min(dx/80,1):0;delIcon.style.opacity=dx<0?Math.min(-dx/80,1):0;rafId=null;}wrap.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;});wrap.addEventListener('touchmove',e=>{dx=e.touches[0].clientX-startX;rafId|| (rafId=requestAnimationFrame(move));});wrap.addEventListener('touchend',()=>{card.style.transition='transform .2s';card.style.transform='';if(dx<-80) remove(n.id);else if(dx>80) togglePin(n.id);pinIcon.style.opacity=delIcon.style.opacity=0;setTimeout(()=>card.style.transition='',200);dx=0;});});}
+function openEditor(n){current=n||{id:Date.now(),text:'',tags:[],pinned:false};noteText.value=current.text;noteTags.value=current.tags.join(' ');editor.classList.add('show');noteText.focus();}
+function closeEditor(){editor.classList.remove('show');if(current){current.text=noteText.value.trim();current.tags=noteTags.value.trim().split(/\s+/).filter(Boolean);if(!current.text){notes=notes.filter(x=>x.id!==current.id);}else if(!notes.find(x=>x.id===current.id)) notes.push(current);save();render();}current=null;}
+function togglePin(id){const n=notes.find(n=>n.id===id);if(n){n.pinned=!n.pinned;save();render();}}
+function remove(id){notes=notes.filter(n=>n.id!==id);save();render();}
+noteText.addEventListener('input',()=>{if(current){current.text=noteText.value;save();render();}});noteTags.addEventListener('input',()=>{if(current){current.tags=noteTags.value.trim().split(/\s+/).filter(Boolean);save();render();}});document.getElementById('addBtn').addEventListener('click',()=>openEditor());document.getElementById('closeEditor').addEventListener('click',closeEditor);pinEditor.addEventListener('click',()=>{if(current){current.pinned=!current.pinned;pinEditor.classList.toggle('active',current.pinned);}});deleteEditor.addEventListener('click',()=>{if(current) remove(current.id),closeEditor();});document.getElementById('searchBtn').addEventListener('click',()=>{searchOverlay.classList.add('show');searchInput.focus();});document.getElementById('closeSearch').addEventListener('click',()=>{searchOverlay.classList.remove('show');searchQuery='';searchInput.value='';render();});document.getElementById('moreBtn').addEventListener('click',()=>{optionsOverlay.classList.add('show');});document.getElementById('closeOptions').addEventListener('click',()=>optionsOverlay.classList.remove('show'));document.getElementById('exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify(notes)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='notes.json';a.click();});document.getElementById('importBtn').addEventListener('click',()=>importFile.click());importFile.addEventListener('change',e=>{const file=e.target.files[0];if(!file) return;const reader=new FileReader();reader.onload=()=>{try{notes=JSON.parse(reader.result);save();render();}catch{}};reader.readAsText(file);});const doSearch=((fn,delay=150)=>{let t;return function(...args){clearTimeout(t);t=setTimeout(()=>fn.apply(this,args),delay);};})(()=>{searchQuery=searchInput.value.toLowerCase();render();});searchInput.addEventListener('input',doSearch);render();
+</script>
+</body>
+</html>
